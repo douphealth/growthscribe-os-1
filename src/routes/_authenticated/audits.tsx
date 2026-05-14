@@ -1,20 +1,33 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/org-context";
+import type { Database } from "@/integrations/supabase/types";
 import { PageHeader, EmptyState } from "@/components/dashboard/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FileSearch } from "lucide-react";
+
+type Audit = Database["public"]["Tables"]["content_audits"]["Row"];
 
 export const Route = createFileRoute("/_authenticated/audits")({
   component: AuditsPage,
 });
 
 function AuditsPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["audits"],
-    queryFn: async () => {
-      const { data } = await supabase.from("content_audits").select("*").order("created_at", { ascending: false });
+  const { currentOrg } = useOrg();
+  const orgId = currentOrg?.id ?? null;
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["audits", orgId],
+    enabled: !!orgId,
+    queryFn: async (): Promise<Audit[]> => {
+      const { data, error } = await supabase
+        .from("content_audits")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -26,7 +39,18 @@ function AuditsPage() {
         description="AI-driven URL-level audits scoring quality, E-E-A-T, and AEO readiness."
       />
       {isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 rounded-md bg-muted/30 animate-pulse" />
+          ))}
+        </div>
+      ) : isError ? (
+        <EmptyState
+          icon={FileSearch}
+          title="Couldn't load audits"
+          description="There was a problem reaching the database."
+          action={<Button onClick={() => refetch()}>Try again</Button>}
+        />
       ) : !data || data.length === 0 ? (
         <EmptyState
           icon={FileSearch}
@@ -35,7 +59,7 @@ function AuditsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {data.map((a: any) => (
+          {data.map((a) => (
             <Card key={a.id}>
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="min-w-0">

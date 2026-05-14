@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useOrg } from "@/lib/org-context";
+import type { Database } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/dashboard/PageHeader";
@@ -34,17 +36,20 @@ function StatCard({
 
 function DashboardPage() {
   const { profile, user } = useAuth();
+  const { currentOrg } = useOrg();
+  const orgId = currentOrg?.id ?? null;
 
   const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats", user?.id],
+    queryKey: ["dashboard-stats", orgId, user?.id],
+    enabled: !!user && !!orgId,
     queryFn: async () => {
       const [sites, audits, tasks, briefs] = await Promise.all([
-        supabase.from("sites").select("id, monthly_clicks", { count: "exact" }),
-        supabase.from("content_audits").select("id", { count: "exact", head: true }),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).neq("status", "published").neq("status", "archived"),
-        supabase.from("content_briefs").select("id", { count: "exact", head: true }),
+        supabase.from("sites").select("id, monthly_clicks", { count: "exact" }).eq("organization_id", orgId!),
+        supabase.from("content_audits").select("id", { count: "exact", head: true }).eq("organization_id", orgId!),
+        supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", orgId!).neq("status", "published").neq("status", "archived"),
+        supabase.from("content_briefs").select("id", { count: "exact", head: true }).eq("organization_id", orgId!),
       ]);
-      const totalClicks = (sites.data ?? []).reduce((s, r: any) => s + (r.monthly_clicks ?? 0), 0);
+      const totalClicks = (sites.data ?? []).reduce((s, r) => s + (r.monthly_clicks ?? 0), 0);
       return {
         sites: sites.count ?? 0,
         audits: audits.count ?? 0,
@@ -53,20 +58,21 @@ function DashboardPage() {
         totalClicks,
       };
     },
-    enabled: !!user,
   });
 
+  type Activity = Database["public"]["Tables"]["activities"]["Row"];
   const { data: activities } = useQuery({
-    queryKey: ["activities", user?.id],
-    queryFn: async () => {
+    queryKey: ["activities", orgId, user?.id],
+    enabled: !!user && !!orgId,
+    queryFn: async (): Promise<Activity[]> => {
       const { data } = await supabase
         .from("activities")
         .select("*")
+        .eq("organization_id", orgId!)
         .order("created_at", { ascending: false })
         .limit(8);
       return data ?? [];
     },
-    enabled: !!user,
   });
 
   const firstName = (profile?.display_name ?? "").split(" ")[0] || "there";
@@ -119,7 +125,7 @@ function DashboardPage() {
           <CardContent>
             {activities && activities.length > 0 ? (
               <ul className="space-y-3">
-                {activities.map((a: any) => (
+                {activities.map((a) => (
                   <li key={a.id} className="text-sm">
                     <p className="font-medium">{a.title}</p>
                     {a.description && <p className="text-xs text-muted-foreground">{a.description}</p>}
