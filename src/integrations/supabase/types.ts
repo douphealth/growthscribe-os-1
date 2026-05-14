@@ -804,6 +804,7 @@ export type Database = {
           id: string
           intent: string | null
           keyword: string
+          keyword_id: string | null
           organization_id: string
           page: string | null
           position: number | null
@@ -818,6 +819,7 @@ export type Database = {
           id?: string
           intent?: string | null
           keyword: string
+          keyword_id?: string | null
           organization_id: string
           page?: string | null
           position?: number | null
@@ -832,6 +834,7 @@ export type Database = {
           id?: string
           intent?: string | null
           keyword?: string
+          keyword_id?: string | null
           organization_id?: string
           page?: string | null
           position?: number | null
@@ -1125,6 +1128,83 @@ export type Database = {
           },
         ]
       }
+      topical_cluster_pages: {
+        Row: {
+          cluster_id: string
+          coverage_status: string
+          created_at: string
+          id: string
+          organization_id: string
+          page_role: string | null
+          position: number | null
+          post_id: string | null
+          site_id: string
+          target_keyword: string | null
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          cluster_id: string
+          coverage_status?: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          page_role?: string | null
+          position?: number | null
+          post_id?: string | null
+          site_id: string
+          target_keyword?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          cluster_id?: string
+          coverage_status?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          page_role?: string | null
+          position?: number | null
+          post_id?: string | null
+          site_id?: string
+          target_keyword?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topical_cluster_pages_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "topical_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topical_clusters: {
         Row: {
           coverage_percent: number | null
@@ -1368,6 +1448,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_initial_org_membership: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_org_role: {
         Args: {
           _org_id: string
@@ -1392,6 +1476,7 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      org_has_no_members: { Args: { _org_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "owner" | "admin" | "editor" | "analyst" | "viewer"
