@@ -1,5 +1,5 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "growthscribe-os",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -9,6 +9,10 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "bun run typecheck && bun run lint",
+    "db:types": "echo 'Run: supabase gen types typescript --project-id $VITE_SUPABASE_PROJECT_ID > src/integrations/supabase/types.ts'",
     "format": "prettier --write ."
   },
   "dependencies": {
