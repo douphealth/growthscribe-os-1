@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Globe, FileSearch, Network, FileText, ListTodo,
   Plug, ScrollText, Settings, Sparkles, LogOut, Check, ChevronsUpDown, Plus,
+  Library, Lightbulb, Bot,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -27,10 +28,13 @@ const sections = [
   {
     label: "Growth Engine",
     items: [
+      { title: "Content Inventory", url: "/content-inventory", icon: Library },
       { title: "Content Audits", url: "/audits", icon: FileSearch },
+      { title: "Recommendations", url: "/recommendations", icon: Lightbulb },
       { title: "Topical Maps", url: "/topical-maps", icon: Network },
       { title: "Content Briefs", url: "/briefs", icon: FileText },
       { title: "Tasks", url: "/tasks", icon: ListTodo },
+      { title: "AI Visibility", url: "/ai-visibility", icon: Bot },
     ],
   },
   {

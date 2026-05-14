@@ -13,10 +13,19 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTopicalMapsRouteImport } from './routes/_authenticated/topical-maps'
+import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSitesRouteImport } from './routes/_authenticated/sites'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedContentInventoryRouteImport } from './routes/_authenticated/content-inventory'
+import { Route as AuthenticatedBriefsRouteImport } from './routes/_authenticated/briefs'
 import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
+import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authenticated/audit-logs'
+import { Route as AuthenticatedAiVisibilityRouteImport } from './routes/_authenticated/ai-visibility'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -37,19 +46,58 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedTopicalMapsRoute =
+  AuthenticatedTopicalMapsRouteImport.update({
+    id: '/topical-maps',
+    path: '/topical-maps',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSitesRoute = AuthenticatedSitesRouteImport.update({
   id: '/sites',
   path: '/sites',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecommendationsRoute =
+  AuthenticatedRecommendationsRouteImport.update({
+    id: '/recommendations',
+    path: '/recommendations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedIntegrationsRoute =
+  AuthenticatedIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedContentInventoryRoute =
+  AuthenticatedContentInventoryRouteImport.update({
+    id: '/content-inventory',
+    path: '/content-inventory',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBriefsRoute = AuthenticatedBriefsRouteImport.update({
+  id: '/briefs',
+  path: '/briefs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAuditsRoute = AuthenticatedAuditsRouteImport.update({
@@ -57,24 +105,53 @@ const AuthenticatedAuditsRoute = AuthenticatedAuditsRouteImport.update({
   path: '/audits',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAuditLogsRoute = AuthenticatedAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAiVisibilityRoute =
+  AuthenticatedAiVisibilityRouteImport.update({
+    id: '/ai-visibility',
+    path: '/ai-visibility',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/audits': typeof AuthenticatedAuditsRoute
+  '/briefs': typeof AuthenticatedBriefsRoute
+  '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/integrations': typeof AuthenticatedIntegrationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
+  '/tasks': typeof AuthenticatedTasksRoute
+  '/topical-maps': typeof AuthenticatedTopicalMapsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/audits': typeof AuthenticatedAuditsRoute
+  '/briefs': typeof AuthenticatedBriefsRoute
+  '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/integrations': typeof AuthenticatedIntegrationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
+  '/tasks': typeof AuthenticatedTasksRoute
+  '/topical-maps': typeof AuthenticatedTopicalMapsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -82,10 +159,19 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/_authenticated/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/_authenticated/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/_authenticated/audits': typeof AuthenticatedAuditsRoute
+  '/_authenticated/briefs': typeof AuthenticatedBriefsRoute
+  '/_authenticated/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
+  '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/_authenticated/topical-maps': typeof AuthenticatedTopicalMapsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -93,29 +179,56 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/signup'
+    | '/ai-visibility'
+    | '/audit-logs'
     | '/audits'
+    | '/briefs'
+    | '/content-inventory'
     | '/dashboard'
+    | '/integrations'
     | '/onboarding'
+    | '/recommendations'
+    | '/settings'
     | '/sites'
+    | '/tasks'
+    | '/topical-maps'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/signup'
+    | '/ai-visibility'
+    | '/audit-logs'
     | '/audits'
+    | '/briefs'
+    | '/content-inventory'
     | '/dashboard'
+    | '/integrations'
     | '/onboarding'
+    | '/recommendations'
+    | '/settings'
     | '/sites'
+    | '/tasks'
+    | '/topical-maps'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
     | '/signup'
+    | '/_authenticated/ai-visibility'
+    | '/_authenticated/audit-logs'
     | '/_authenticated/audits'
+    | '/_authenticated/briefs'
+    | '/_authenticated/content-inventory'
     | '/_authenticated/dashboard'
+    | '/_authenticated/integrations'
     | '/_authenticated/onboarding'
+    | '/_authenticated/recommendations'
+    | '/_authenticated/settings'
     | '/_authenticated/sites'
+    | '/_authenticated/tasks'
+    | '/_authenticated/topical-maps'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -155,11 +268,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/topical-maps': {
+      id: '/_authenticated/topical-maps'
+      path: '/topical-maps'
+      fullPath: '/topical-maps'
+      preLoaderRoute: typeof AuthenticatedTopicalMapsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks': {
+      id: '/_authenticated/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AuthenticatedTasksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sites': {
       id: '/_authenticated/sites'
       path: '/sites'
       fullPath: '/sites'
       preLoaderRoute: typeof AuthenticatedSitesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recommendations': {
+      id: '/_authenticated/recommendations'
+      path: '/recommendations'
+      fullPath: '/recommendations'
+      preLoaderRoute: typeof AuthenticatedRecommendationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -169,11 +310,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/integrations': {
+      id: '/_authenticated/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/content-inventory': {
+      id: '/_authenticated/content-inventory'
+      path: '/content-inventory'
+      fullPath: '/content-inventory'
+      preLoaderRoute: typeof AuthenticatedContentInventoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/briefs': {
+      id: '/_authenticated/briefs'
+      path: '/briefs'
+      fullPath: '/briefs'
+      preLoaderRoute: typeof AuthenticatedBriefsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/audits': {
@@ -183,21 +345,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/audit-logs': {
+      id: '/_authenticated/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/audit-logs'
+      preLoaderRoute: typeof AuthenticatedAuditLogsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ai-visibility': {
+      id: '/_authenticated/ai-visibility'
+      path: '/ai-visibility'
+      fullPath: '/ai-visibility'
+      preLoaderRoute: typeof AuthenticatedAiVisibilityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAiVisibilityRoute: typeof AuthenticatedAiVisibilityRoute
+  AuthenticatedAuditLogsRoute: typeof AuthenticatedAuditLogsRoute
   AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
+  AuthenticatedBriefsRoute: typeof AuthenticatedBriefsRoute
+  AuthenticatedContentInventoryRoute: typeof AuthenticatedContentInventoryRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
+  AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
+  AuthenticatedTopicalMapsRoute: typeof AuthenticatedTopicalMapsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAiVisibilityRoute: AuthenticatedAiVisibilityRoute,
+  AuthenticatedAuditLogsRoute: AuthenticatedAuditLogsRoute,
   AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
+  AuthenticatedBriefsRoute: AuthenticatedBriefsRoute,
+  AuthenticatedContentInventoryRoute: AuthenticatedContentInventoryRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
+  AuthenticatedTasksRoute: AuthenticatedTasksRoute,
+  AuthenticatedTopicalMapsRoute: AuthenticatedTopicalMapsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
