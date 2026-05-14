@@ -15,11 +15,10 @@ const projectId = process.env.VITE_SUPABASE_PROJECT_ID;
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 
 if (projectId && token) {
-  const res = spawnSync(
-    "supabase",
-    ["gen", "types", "typescript", "--project-id", projectId],
-    { encoding: "utf8", env: { ...process.env } },
-  );
+  const res = spawnSync("supabase", ["gen", "types", "typescript", "--project-id", projectId], {
+    encoding: "utf8",
+    env: { ...process.env },
+  });
   if (res.status === 0 && res.stdout.trim().length > 0) {
     writeFileSync(TYPES, res.stdout);
     // Refresh the committed snapshot to match.

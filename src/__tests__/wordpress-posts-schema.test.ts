@@ -81,10 +81,9 @@ describe("wordpress_posts generated types", () => {
     // column is missing from the live table, PostgREST returns a 400 with
     // `column "<name>" does not exist`, failing this test precisely.
     const select = REQUIRED_COLUMNS.join(",");
-    const res = await fetch(
-      `${url}/rest/v1/wordpress_posts?select=${select}&limit=0`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` } },
-    );
+    const res = await fetch(`${url}/rest/v1/wordpress_posts?select=${select}&limit=0`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
     if (res.status === 401 || res.status === 403) {
       // RLS blocks anon reads — that's fine; the request still validates the
       // column projection before evaluating policies, so a 401/403 here means
@@ -93,9 +92,7 @@ describe("wordpress_posts generated types", () => {
     }
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(
-        `Live REST projection failed (${res.status}): ${body.slice(0, 500)}`,
-      );
+      throw new Error(`Live REST projection failed (${res.status}): ${body.slice(0, 500)}`);
     }
   }, 15_000);
 });
