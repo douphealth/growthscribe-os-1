@@ -1263,15 +1263,22 @@ export type Database = {
       }
       wordpress_posts: {
         Row: {
+          aeo_score: number | null
           author: string | null
           categories: Json | null
           content_html: string | null
+          content_text: string | null
           created_at: string
           excerpt: string | null
+          freshness_score: number | null
+          geo_score: number | null
           id: string
           modified_at: string | null
           organization_id: string
+          post_type: string
           published_at: string | null
+          recommended_action: string | null
+          seo_score: number | null
           site_id: string
           slug: string | null
           status: string | null
@@ -1283,15 +1290,22 @@ export type Database = {
           wp_post_id: number
         }
         Insert: {
+          aeo_score?: number | null
           author?: string | null
           categories?: Json | null
           content_html?: string | null
+          content_text?: string | null
           created_at?: string
           excerpt?: string | null
+          freshness_score?: number | null
+          geo_score?: number | null
           id?: string
           modified_at?: string | null
           organization_id: string
+          post_type?: string
           published_at?: string | null
+          recommended_action?: string | null
+          seo_score?: number | null
           site_id: string
           slug?: string | null
           status?: string | null
@@ -1303,15 +1317,22 @@ export type Database = {
           wp_post_id: number
         }
         Update: {
+          aeo_score?: number | null
           author?: string | null
           categories?: Json | null
           content_html?: string | null
+          content_text?: string | null
           created_at?: string
           excerpt?: string | null
+          freshness_score?: number | null
+          geo_score?: number | null
           id?: string
           modified_at?: string | null
           organization_id?: string
+          post_type?: string
           published_at?: string | null
+          recommended_action?: string | null
+          seo_score?: number | null
           site_id?: string
           slug?: string | null
           status?: string | null
