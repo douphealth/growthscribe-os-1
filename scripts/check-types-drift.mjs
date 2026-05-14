@@ -18,11 +18,9 @@ if (!projectId) {
 const tmp = mkdtempSync(join(tmpdir(), "sb-types-"));
 const out = join(tmp, "types.ts");
 
-const res = spawnSync(
-  "supabase",
-  ["gen", "types", "typescript", "--project-id", projectId],
-  { encoding: "utf8" },
-);
+const res = spawnSync("supabase", ["gen", "types", "typescript", "--project-id", projectId], {
+  encoding: "utf8",
+});
 
 if (res.status !== 0) {
   console.error("✖ `supabase gen types` failed:");
@@ -37,9 +35,7 @@ const committed = readFileSync(TYPES_PATH, "utf8").trim();
 const generated = res.stdout.trim();
 
 if (committed !== generated) {
-  console.error(
-    "✖ Drift detected between live schema and committed types.ts.",
-  );
+  console.error("✖ Drift detected between live schema and committed types.ts.");
   console.error(`  Committed: ${TYPES_PATH}`);
   console.error(`  Generated: ${out}`);
   console.error("\nRun `bun run db:types` and commit the updated file.");
