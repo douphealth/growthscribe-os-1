@@ -429,7 +429,7 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
             await updateProgress();
             if (capped) {
               warnings.push(
-                `${type}: pagination cap reached (40 pages / 2000 items); sync may be incomplete`,
+                `Reached pagination cap for ${type}; sync may be incomplete`,
               );
             }
           }
