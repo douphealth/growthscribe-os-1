@@ -19,9 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plug, Globe, RefreshCw, Search, BarChart3 } from "lucide-react";
+import { Plug, Globe, RefreshCw, Search, BarChart3, Download } from "lucide-react";
 import { verifyWordpressConnection, syncWordpressContent } from "@/lib/wordpress.functions";
-import { saveGscProperty, saveGa4Property } from "@/lib/integrations.functions";
+import {
+  saveGscProperty,
+  saveGa4Property,
+  pullSearchConsole,
+  listGscProperties,
+} from "@/lib/integrations.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
@@ -46,6 +51,8 @@ function IntegrationsPage() {
   const sync = useServerFn(syncWordpressContent);
   const saveGsc = useServerFn(saveGscProperty);
   const saveGa4 = useServerFn(saveGa4Property);
+  const pullGsc = useServerFn(pullSearchConsole);
+  const fetchGscProps = useServerFn(listGscProperties);
 
   const sitesQ = useQuery({
     queryKey: ["sites", orgId],
@@ -112,6 +119,17 @@ function IntegrationsPage() {
   const [ga4Property, setGa4Property] = useState("");
   const [gscBusy, setGscBusy] = useState(false);
   const [ga4Busy, setGa4Busy] = useState(false);
+  const [gscPullBusyId, setGscPullBusyId] = useState<string | null>(null);
+
+  const propertiesQ = useQuery({
+    queryKey: ["gsc-properties", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const res = await fetchGscProps({ data: { organizationId: orgId! } });
+      return res;
+    },
+    staleTime: 60_000,
+  });
 
   const sites = sitesQ.data ?? [];
   const connections = connectionsQ.data ?? [];
@@ -189,7 +207,9 @@ function IntegrationsPage() {
     }
     setGscBusy(true);
     try {
-      await saveGsc({ data: { organizationId: orgId, siteId: gscSiteId, property: gscProperty.trim() } });
+      await saveGsc({
+        data: { organizationId: orgId, siteId: gscSiteId, property: gscProperty.trim() },
+      });
       toast.success("Search Console linked");
       setGscProperty("");
       qc.invalidateQueries({ queryKey: ["sites", orgId] });
@@ -197,6 +217,26 @@ function IntegrationsPage() {
       toast.error((err as Error).message);
     } finally {
       setGscBusy(false);
+    }
+  };
+
+  const handlePullGsc = async (sId: string) => {
+    if (!orgId) return;
+    setGscPullBusyId(sId);
+    const t = toast.loading("Pulling last 28 days from Search Console…");
+    try {
+      const res = await pullGsc({ data: { organizationId: orgId, siteId: sId, days: 28 } });
+      toast.success(
+        `Synced ${res.rows.toLocaleString()} rows · ${res.totals.clicks.toLocaleString()} clicks`,
+        { id: t },
+      );
+      qc.invalidateQueries({ queryKey: ["sites", orgId] });
+      qc.invalidateQueries({ queryKey: ["dashboard-stats", orgId] });
+      qc.invalidateQueries({ queryKey: ["activities", orgId] });
+    } catch (err) {
+      toast.error((err as Error).message, { id: t });
+    } finally {
+      setGscPullBusyId(null);
     }
   };
 
@@ -208,7 +248,9 @@ function IntegrationsPage() {
     }
     setGa4Busy(true);
     try {
-      await saveGa4({ data: { organizationId: orgId, siteId: ga4SiteId, propertyId: ga4Property.trim() } });
+      await saveGa4({
+        data: { organizationId: orgId, siteId: ga4SiteId, propertyId: ga4Property.trim() },
+      });
       toast.success("GA4 linked");
       setGa4Property("");
       qc.invalidateQueries({ queryKey: ["sites", orgId] });
@@ -387,8 +429,8 @@ function IntegrationsPage() {
               <Search className="h-4 w-4" /> Google Search Console
             </CardTitle>
             <CardDescription>
-              Save your verified GSC property URL (e.g. <code>https://example.com/</code> or
-              <code>sc-domain:example.com</code>).
+              Pick a verified property from your linked Google account, save it, then pull the last
+              28 days of clicks, impressions, and queries.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -414,17 +456,56 @@ function IntegrationsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="gsc-prop">GSC property</Label>
-                  <Input
-                    id="gsc-prop"
-                    required
-                    placeholder="https://example.com/"
-                    value={gscProperty}
-                    onChange={(e) => setGscProperty(e.target.value)}
-                  />
+                  {propertiesQ.data?.ok && propertiesQ.data.properties.length > 0 ? (
+                    <Select value={gscProperty} onValueChange={setGscProperty}>
+                      <SelectTrigger id="gsc-prop">
+                        <SelectValue placeholder="Select a verified property" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {propertiesQ.data.properties.map((p) => (
+                          <SelectItem key={p.siteUrl} value={p.siteUrl}>
+                            {p.siteUrl}
+                            <span className="text-muted-foreground"> · {p.permissionLevel}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id="gsc-prop"
+                      required
+                      placeholder="https://example.com/ or sc-domain:example.com"
+                      value={gscProperty}
+                      onChange={(e) => setGscProperty(e.target.value)}
+                    />
+                  )}
+                  {propertiesQ.data && !propertiesQ.data.ok && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Couldn't list properties from Google: {propertiesQ.data.error}. Paste the
+                      property URL manually.
+                    </p>
+                  )}
                 </div>
-                <Button type="submit" disabled={gscBusy}>
-                  {gscBusy ? "Saving…" : "Link Search Console"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="submit" disabled={gscBusy}>
+                    {gscBusy ? "Saving…" : "Link Search Console"}
+                  </Button>
+                  {gscSiteId && sites.find((s) => s.id === gscSiteId)?.gsc_property && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={gscPullBusyId === gscSiteId}
+                      onClick={() => handlePullGsc(gscSiteId)}
+                    >
+                      <Download
+                        className={`h-3 w-3 mr-1 ${
+                          gscPullBusyId === gscSiteId ? "animate-pulse" : ""
+                        }`}
+                      />
+                      {gscPullBusyId === gscSiteId ? "Pulling…" : "Pull last 28 days"}
+                    </Button>
+                  )}
+                </div>
               </form>
             )}
           </CardContent>

@@ -192,9 +192,7 @@ function AuditsPage() {
             />
           ) : (
             audits.map((a) => {
-              const recs = Array.isArray(a.recommendations)
-                ? (a.recommendations as Json[])
-                : [];
+              const recs = Array.isArray(a.recommendations) ? (a.recommendations as Json[]) : [];
               return (
                 <Card key={a.id}>
                   <CardContent className="p-4 space-y-2">
@@ -264,8 +262,7 @@ function AuditsPage() {
 
 function ScorePill({ label, value }: { label: string; value: number | null }) {
   const v = value ?? 0;
-  const color =
-    v >= 80 ? "text-emerald-500" : v >= 60 ? "text-amber-500" : "text-destructive";
+  const color = v >= 80 ? "text-emerald-500" : v >= 60 ? "text-amber-500" : "text-destructive";
   return (
     <div className="rounded-md border p-2">
       <p className="text-muted-foreground">{label}</p>

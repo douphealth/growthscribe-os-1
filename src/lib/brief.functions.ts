@@ -60,7 +60,10 @@ export const generateContentBrief = createServerFn({ method: "POST" })
       {
         type: "object",
         properties: {
-          search_intent: { type: "string", enum: ["informational", "commercial", "transactional", "navigational"] },
+          search_intent: {
+            type: "string",
+            enum: ["informational", "commercial", "transactional", "navigational"],
+          },
           word_count_target: { type: "integer", minimum: 300, maximum: 5000 },
           outline: {
             type: "array",
@@ -85,7 +88,14 @@ export const generateContentBrief = createServerFn({ method: "POST" })
             },
           },
         },
-        required: ["search_intent", "word_count_target", "outline", "aeo_questions", "geo_signals", "internal_links"],
+        required: [
+          "search_intent",
+          "word_count_target",
+          "outline",
+          "aeo_questions",
+          "geo_signals",
+          "internal_links",
+        ],
       },
     );
 

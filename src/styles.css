@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
@@ -26,6 +27,8 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -62,39 +65,46 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.18 0.04 265);
+  /* Cloud White — crisp SaaS palette inspired by Linear / Vercel */
+  --radius: 0.75rem;
+  --background: oklch(0.992 0.004 250);
+  --foreground: oklch(0.21 0.03 264);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.04 265);
+  --card-foreground: oklch(0.21 0.03 264);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.04 265);
-  --primary: oklch(0.46 0.18 268);
+  --popover-foreground: oklch(0.21 0.03 264);
+  --primary: oklch(0.62 0.19 256);
   --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.97 0.01 260);
-  --secondary-foreground: oklch(0.22 0.05 265);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.72 0.13 195);
-  --accent-foreground: oklch(0.15 0.04 265);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.46 0.18 268);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --primary-glow: oklch(0.78 0.16 250);
+  --secondary: oklch(0.97 0.008 250);
+  --secondary-foreground: oklch(0.25 0.04 264);
+  --muted: oklch(0.965 0.008 250);
+  --muted-foreground: oklch(0.52 0.03 257);
+  --accent: oklch(0.96 0.02 245);
+  --accent-foreground: oklch(0.32 0.08 256);
+  --destructive: oklch(0.62 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.93 0.008 250);
+  --input: oklch(0.93 0.008 250);
+  --ring: oklch(0.62 0.19 256);
+  --chart-1: oklch(0.62 0.19 256);
+  --chart-2: oklch(0.7 0.14 195);
+  --chart-3: oklch(0.72 0.16 145);
+  --chart-4: oklch(0.78 0.17 70);
+  --chart-5: oklch(0.65 0.22 20);
+  --sidebar: oklch(0.985 0.005 250);
+  --sidebar-foreground: oklch(0.28 0.03 264);
+  --sidebar-primary: oklch(0.62 0.19 256);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.01 250);
+  --sidebar-accent-foreground: oklch(0.25 0.05 256);
+  --sidebar-border: oklch(0.92 0.008 250);
+  --sidebar-ring: oklch(0.62 0.19 256);
+  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-glow));
+  --gradient-subtle: linear-gradient(180deg, oklch(0.99 0.004 250), oklch(0.96 0.012 250));
+  --shadow-elegant: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 8px 24px -8px rgb(15 23 42 / 0.08);
+  --shadow-card: 0 1px 0 0 rgb(15 23 42 / 0.04);
+  --shadow-glow: 0 12px 40px -10px color-mix(in oklab, var(--primary) 35%, transparent);
 }
 
 .dark {
@@ -140,5 +150,14 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
 }

@@ -28,7 +28,12 @@ type MapResult = {
     intent: string;
     coverage_status: "covered" | "partial" | "gap";
     priority: number;
-    clusters: { cluster: string; intent: string; coverage_status: "covered" | "partial" | "gap"; priority: number }[];
+    clusters: {
+      cluster: string;
+      intent: string;
+      coverage_status: "covered" | "partial" | "gap";
+      priority: number;
+    }[];
   }[];
 };
 
