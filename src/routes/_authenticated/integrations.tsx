@@ -380,6 +380,103 @@ function IntegrationsPage() {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-4 w-4" /> Google Search Console
+            </CardTitle>
+            <CardDescription>
+              Save your verified GSC property URL (e.g. <code>https://example.com/</code> or
+              <code>sc-domain:example.com</code>).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {sites.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Add a site first.</p>
+            ) : (
+              <form onSubmit={handleGsc} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Site</Label>
+                  <Select value={gscSiteId} onValueChange={setGscSiteId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a site" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sites.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                          {s.gsc_property ? " · linked" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="gsc-prop">GSC property</Label>
+                  <Input
+                    id="gsc-prop"
+                    required
+                    placeholder="https://example.com/"
+                    value={gscProperty}
+                    onChange={(e) => setGscProperty(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" disabled={gscBusy}>
+                  {gscBusy ? "Saving…" : "Link Search Console"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" /> Google Analytics 4
+            </CardTitle>
+            <CardDescription>
+              Save your GA4 property ID (digits only, e.g. <code>123456789</code>).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {sites.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Add a site first.</p>
+            ) : (
+              <form onSubmit={handleGa4} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Site</Label>
+                  <Select value={ga4SiteId} onValueChange={setGa4SiteId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a site" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sites.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                          {s.ga4_property_id ? " · linked" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ga4-prop">GA4 property ID</Label>
+                  <Input
+                    id="ga4-prop"
+                    required
+                    placeholder="123456789"
+                    value={ga4Property}
+                    onChange={(e) => setGa4Property(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" disabled={ga4Busy}>
+                  {ga4Busy ? "Saving…" : "Link GA4"}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );
