@@ -566,6 +566,54 @@ export type Database = {
           },
         ]
       }
+      ga4_daily: {
+        Row: {
+          conversions: number
+          created_at: string
+          date: string
+          engaged_sessions: number
+          id: string
+          medium: string | null
+          organization_id: string
+          page_path: string | null
+          revenue: number
+          sessions: number
+          site_id: string
+          source: string | null
+          users: number
+        }
+        Insert: {
+          conversions?: number
+          created_at?: string
+          date: string
+          engaged_sessions?: number
+          id?: string
+          medium?: string | null
+          organization_id: string
+          page_path?: string | null
+          revenue?: number
+          sessions?: number
+          site_id: string
+          source?: string | null
+          users?: number
+        }
+        Update: {
+          conversions?: number
+          created_at?: string
+          date?: string
+          engaged_sessions?: number
+          id?: string
+          medium?: string | null
+          organization_id?: string
+          page_path?: string | null
+          revenue?: number
+          sessions?: number
+          site_id?: string
+          source?: string | null
+          users?: number
+        }
+        Relationships: []
+      }
       integration_connections: {
         Row: {
           config: Json
@@ -745,6 +793,51 @@ export type Database = {
           },
         ]
       }
+      keyword_rankings: {
+        Row: {
+          created_at: string
+          date: string
+          difficulty: number | null
+          id: string
+          intent: string | null
+          keyword: string
+          organization_id: string
+          page: string | null
+          position: number | null
+          search_volume: number | null
+          site_id: string
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          difficulty?: number | null
+          id?: string
+          intent?: string | null
+          keyword: string
+          organization_id: string
+          page?: string | null
+          position?: number | null
+          search_volume?: number | null
+          site_id: string
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          difficulty?: number | null
+          id?: string
+          intent?: string | null
+          keyword?: string
+          organization_id?: string
+          page?: string | null
+          position?: number | null
+          search_volume?: number | null
+          site_id?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -837,6 +930,54 @@ export type Database = {
           id?: string
           job_title?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      search_console_daily: {
+        Row: {
+          clicks: number
+          country: string | null
+          created_at: string
+          ctr: number | null
+          date: string
+          device: string | null
+          id: string
+          impressions: number
+          organization_id: string
+          page: string | null
+          position: number | null
+          query: string | null
+          site_id: string
+        }
+        Insert: {
+          clicks?: number
+          country?: string | null
+          created_at?: string
+          ctr?: number | null
+          date: string
+          device?: string | null
+          id?: string
+          impressions?: number
+          organization_id: string
+          page?: string | null
+          position?: number | null
+          query?: string | null
+          site_id: string
+        }
+        Update: {
+          clicks?: number
+          country?: string | null
+          created_at?: string
+          ctr?: number | null
+          date?: string
+          device?: string | null
+          id?: string
+          impressions?: number
+          organization_id?: string
+          page?: string | null
+          position?: number | null
+          query?: string | null
+          site_id?: string
         }
         Relationships: []
       }
