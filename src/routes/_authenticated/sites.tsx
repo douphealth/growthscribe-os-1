@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useOrg } from "@/lib/org-context";
+import type { Database } from "@/integrations/supabase/types";
 import { PageHeader, EmptyState } from "@/components/dashboard/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +14,15 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Globe, Plus, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+type Site = Database["public"]["Tables"]["sites"]["Row"];
+
+export const siteFormSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  url: z.string().trim().url("Must be a valid URL").max(500),
+});
+export type SiteFormInput = z.infer<typeof siteFormSchema>;
 
 export const Route = createFileRoute("/_authenticated/sites")({
   component: SitesPage,
@@ -19,35 +30,62 @@ export const Route = createFileRoute("/_authenticated/sites")({
 
 function SitesPage() {
   const { user } = useAuth();
+  const { currentOrg } = useOrg();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const { data: sites, isLoading } = useQuery({
-    queryKey: ["sites"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sites").select("*").order("created_at", { ascending: false });
+  const orgId = currentOrg?.id ?? null;
+  const { data: sites, isLoading, isError, refetch } = useQuery({
+    queryKey: ["sites", orgId],
+    enabled: !!orgId,
+    queryFn: async (): Promise<Site[]> => {
+      const { data, error } = await supabase
+        .from("sites")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !orgId) return;
+    const parsed = siteFormSchema.safeParse({ name, url });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.from("sites").insert({
-      owner_id: user.id, name, url, status: "pending",
+      owner_id: user.id,
+      organization_id: orgId,
+      name: parsed.data.name,
+      url: parsed.data.url,
+      status: "pending",
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Site added");
     setOpen(false); setName(""); setUrl("");
-    qc.invalidateQueries({ queryKey: ["sites"] });
-    qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    qc.invalidateQueries({ queryKey: ["sites", orgId] });
+    qc.invalidateQueries({ queryKey: ["dashboard-stats", orgId] });
   };
+
+  if (!currentOrg) {
+    return (
+      <EmptyState
+        icon={Globe}
+        title="No workspace selected"
+        description="Create or join a workspace to manage sites."
+        action={<Button asChild><Link to="/onboarding">Start onboarding</Link></Button>}
+      />
+    );
+  }
 
   return (
     <>
@@ -80,7 +118,18 @@ function SitesPage() {
       />
 
       {isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}><CardContent className="p-6 h-40 animate-pulse bg-muted/30 rounded-md" /></Card>
+          ))}
+        </div>
+      ) : isError ? (
+        <EmptyState
+          icon={Globe}
+          title="Couldn't load sites"
+          description="There was a problem reaching the database."
+          action={<Button onClick={() => refetch()}>Try again</Button>}
+        />
       ) : !sites || sites.length === 0 ? (
         <EmptyState
           icon={Globe}
@@ -90,7 +139,7 @@ function SitesPage() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sites.map((s: any) => (
+          {sites.map((s) => (
             <Card key={s.id}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
