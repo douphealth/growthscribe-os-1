@@ -85,14 +85,22 @@ function fromB64(value: string) {
 }
 
 async function encryptionKey() {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(getEncryptionMaterial()));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(getEncryptionMaterial()),
+  );
   return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 
 function isEncryptedSecret(value: unknown): value is EncryptedSecret {
   if (!value || typeof value !== "object") return false;
   const maybe = value as Partial<EncryptedSecret>;
-  return maybe.v === 1 && maybe.alg === "AES-GCM" && typeof maybe.iv === "string" && typeof maybe.ciphertext === "string";
+  return (
+    maybe.v === 1 &&
+    maybe.alg === "AES-GCM" &&
+    typeof maybe.iv === "string" &&
+    typeof maybe.ciphertext === "string"
+  );
 }
 
 async function encryptSecret(secret: string): Promise<EncryptedSecret> {
