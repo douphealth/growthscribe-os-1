@@ -186,6 +186,11 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
     await assertMember(supabase, userId, data.organizationId);
 
     const base = normalizeUrl(data.url);
+    await supabase
+      .from("sites")
+      .update({ status: "verifying" })
+      .eq("id", data.siteId)
+      .eq("organization_id", data.organizationId);
     const probe = `${base}/wp-json/wp/v2/users/me?context=edit`;
     let ok = false;
     let detail: string | null = null;
@@ -222,13 +227,20 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
     });
     if (insErr) throw insErr;
 
-    if (ok) {
-      await supabase
-        .from("sites")
-        .update({ status: "connected", wp_username: data.username })
-        .eq("id", data.siteId)
-        .eq("organization_id", data.organizationId);
-    }
+    await supabase
+      .from("sites")
+      .update({
+        status: ok ? "connected" : "disconnected",
+        wp_username: data.username,
+      })
+      .eq("id", data.siteId)
+      .eq("organization_id", data.organizationId);
+
+    await audit(supabase, userId, data.organizationId, "wp.credential.update", data.siteId, {
+      url: base,
+      username: data.username,
+      ok,
+    } as Json);
 
     await audit(supabase, userId, data.organizationId, "wp.verify", data.siteId, {
       ok,
