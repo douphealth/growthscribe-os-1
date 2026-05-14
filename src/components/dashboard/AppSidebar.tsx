@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   LayoutDashboard, Globe, FileSearch, Network, FileText, ListTodo,
-  Plug, ScrollText, Settings, Sparkles, LogOut,
+  Plug, ScrollText, Settings, Sparkles, LogOut, Check, ChevronsUpDown, Plus,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
@@ -10,6 +10,11 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useOrg } from "@/lib/org-context";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const sections = [
   {
@@ -41,6 +46,7 @@ const sections = [
 export function AppSidebar() {
   const { profile, isAdmin, signOut, user, roles } = useAuth();
   const location = useLocation();
+  const { organizations, currentOrg, setCurrentOrgId } = useOrg();
   const initials = (profile?.display_name || user?.email || "?").slice(0, 2).toUpperCase();
 
   return (
@@ -55,6 +61,27 @@ export function AppSidebar() {
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">OS</span>
           </div>
         </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="mx-2 mb-1 justify-between gap-2 text-xs">
+              <span className="truncate">{currentOrg?.name ?? "No workspace"}</span>
+              <ChevronsUpDown className="h-3 w-3 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+            {organizations.map((o) => (
+              <DropdownMenuItem key={o.id} onClick={() => setCurrentOrgId(o.id)}>
+                <span className="flex-1 truncate">{o.name}</span>
+                {o.id === currentOrg?.id && <Check className="h-3 w-3" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/onboarding"><Plus className="mr-2 h-3 w-3" /> New workspace</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarHeader>
       <SidebarContent>
         {sections.map((section) => (
