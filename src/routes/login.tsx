@@ -38,11 +38,11 @@ function LoginPage() {
   };
 
   const handleGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/dashboard`,
     });
-    if (error) toast.error(error.message);
+    if (result.error) toast.error(result.error.message);
+    else if (!result.redirected) navigate({ to: "/dashboard" });
   };
 
   return (
