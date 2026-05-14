@@ -1448,6 +1448,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_create_initial_org_membership: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_org_role: {
         Args: {
           _org_id: string
