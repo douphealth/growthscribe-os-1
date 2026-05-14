@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "bun run typecheck && bun run lint && bun run test && bun run build",
-    "db:types": "supabase gen types typescript --project-id $VITE_SUPABASE_PROJECT_ID > src/integrations/supabase/types.ts",
+    "db:types": "node scripts/gen-types.mjs",
     "db:types:verify": "node scripts/verify-supabase-types.mjs",
     "db:types:check": "node scripts/check-types-drift.mjs",
     "ci": "bun run db:types:verify && bun run check",
