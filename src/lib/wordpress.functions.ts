@@ -186,6 +186,11 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
     await assertMember(supabase, userId, data.organizationId);
 
     const base = normalizeUrl(data.url);
+    await supabase
+      .from("sites")
+      .update({ status: "verifying" })
+      .eq("id", data.siteId)
+      .eq("organization_id", data.organizationId);
     const probe = `${base}/wp-json/wp/v2/users/me?context=edit`;
     let ok = false;
     let detail: string | null = null;
@@ -222,13 +227,20 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
     });
     if (insErr) throw insErr;
 
-    if (ok) {
-      await supabase
-        .from("sites")
-        .update({ status: "connected", wp_username: data.username })
-        .eq("id", data.siteId)
-        .eq("organization_id", data.organizationId);
-    }
+    await supabase
+      .from("sites")
+      .update({
+        status: ok ? "connected" : "disconnected",
+        wp_username: data.username,
+      })
+      .eq("id", data.siteId)
+      .eq("organization_id", data.organizationId);
+
+    await audit(supabase, userId, data.organizationId, "wp.credential.update", data.siteId, {
+      url: base,
+      username: data.username,
+      ok,
+    } as Json);
 
     await audit(supabase, userId, data.organizationId, "wp.verify", data.siteId, {
       ok,
@@ -257,26 +269,34 @@ type WpItem = {
   _embedded?: {
     author?: Array<{ name?: string }>;
     "wp:term"?: Array<Array<{ name?: string; taxonomy?: string }>>;
+    "wp:featuredmedia"?: Array<{
+      source_url?: string;
+      media_details?: { sizes?: Record<string, { source_url?: string }> };
+    }>;
   };
 };
 
-async function fetchAll(base: string, headers: Record<string, string>, type: "posts" | "pages") {
-  const out: WpItem[] = [];
+async function* paginate(
+  base: string,
+  headers: Record<string, string>,
+  type: "posts" | "pages",
+): AsyncGenerator<{ batch: WpItem[]; total: number | null }> {
   let page = 1;
   const perPage = 50;
-  // safety cap: 20 pages = 1000 items per type
-  while (page <= 20) {
+  // safety cap: 40 pages = 2000 items per type
+  while (page <= 40) {
     const url = `${base}/wp-json/wp/v2/${type}?per_page=${perPage}&page=${page}&status=publish,draft,future,private,pending&_embed=1&context=edit`;
     const res = await fetch(url, { headers });
-    if (res.status === 400 || res.status === 404) break;
+    if (res.status === 400 || res.status === 404) return;
     if (!res.ok) throw new Error(`WordPress ${type} fetch failed: HTTP ${res.status}`);
+    const totalHeader = res.headers.get("x-wp-total");
+    const total = totalHeader ? Number(totalHeader) : null;
     const batch = (await res.json()) as WpItem[];
-    if (!Array.isArray(batch) || batch.length === 0) break;
-    out.push(...batch);
-    if (batch.length < perPage) break;
+    if (!Array.isArray(batch) || batch.length === 0) return;
+    yield { batch, total };
+    if (batch.length < perPage) return;
     page += 1;
   }
-  return out;
 }
 
 function mapItem(item: WpItem, organizationId: string, siteId: string) {
@@ -297,6 +317,12 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
       ?.filter((t) => t.taxonomy === "post_tag")
       .map((t) => t.name)
       .filter(Boolean) ?? [];
+  const featuredMedia = item._embedded?.["wp:featuredmedia"]?.[0];
+  const featuredImageUrl =
+    featuredMedia?.source_url ??
+    featuredMedia?.media_details?.sizes?.large?.source_url ??
+    featuredMedia?.media_details?.sizes?.medium?.source_url ??
+    null;
   return {
     organization_id: organizationId,
     site_id: siteId,
@@ -310,11 +336,13 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
     content_html: html || null,
     content_text: text || null,
     word_count: wc,
+    reading_time: wc > 0 ? Math.max(1, Math.round(wc / 220)) : null,
     published_at: item.date_gmt ? new Date(item.date_gmt + "Z").toISOString() : null,
     modified_at: modified,
     author: item._embedded?.author?.[0]?.name ?? null,
     categories: cats as unknown as Json,
     tags: tags as unknown as Json,
+    featured_image_url: featuredImageUrl,
     freshness_score: fresh,
     recommended_action: recommendedAction({
       status: item.status ?? null,
@@ -348,36 +376,61 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
         status: "running",
         started_at: new Date().toISOString(),
         payload: { siteId: data.siteId } as Json,
+        items_processed: 0,
       })
       .select("id")
       .single();
     const jobId = job?.id ?? null;
+
+    await supabase
+      .from("sites")
+      .update({ status: "sync_running" })
+      .eq("id", data.siteId)
+      .eq("organization_id", data.organizationId);
+
+    const updateProgress = async (totalItems: number | null) => {
+      if (!jobId) return;
+      await supabase
+        .from("background_jobs")
+        .update({ items_processed: synced, total_items: totalItems })
+        .eq("id", jobId);
+    };
+
     try {
-      const [posts, pages] = await Promise.all([
-        fetchAll(conn.url, headers, "posts").catch((e) => {
-          errors.push(`posts: ${e.message}`);
-          return [] as WpItem[];
-        }),
-        fetchAll(conn.url, headers, "pages").catch((e) => {
-          errors.push(`pages: ${e.message}`);
-          return [] as WpItem[];
-        }),
-      ]);
-      const rows = [...posts, ...pages].map((it) => mapItem(it, data.organizationId, data.siteId));
-      // Upsert in chunks
-      for (let i = 0; i < rows.length; i += 100) {
-        const chunk = rows.slice(i, i + 100);
-        const { error } = await supabase
-          .from("wordpress_posts")
-          .upsert(chunk, { onConflict: "site_id,wp_post_id" });
-        if (error) throw error;
-        synced += chunk.length;
+      let totalItems: number | null = null;
+      for (const type of ["posts", "pages"] as const) {
+        try {
+          for await (const { batch, total } of paginate(conn.url, headers, type)) {
+            if (total != null) {
+              totalItems = (totalItems ?? 0) + (totalItems == null ? total : 0);
+            }
+            const rows = batch.map((it) => mapItem(it, data.organizationId, data.siteId));
+            const { error } = await supabase
+              .from("wordpress_posts")
+              .upsert(rows, { onConflict: "site_id,wp_post_id,post_type" });
+            if (error) throw error;
+            synced += rows.length;
+            await updateProgress(totalItems);
+          }
+        } catch (e) {
+          errors.push(`${type}: ${(e as Error).message}`);
+        }
       }
       await supabase
         .from("sites")
-        .update({ total_posts: synced, last_synced_at: new Date().toISOString() })
+        .update({
+          total_posts: synced,
+          last_synced_at: new Date().toISOString(),
+          status: errors.length ? "sync_failed" : "connected",
+        })
         .eq("id", data.siteId)
         .eq("organization_id", data.organizationId);
+      await supabase
+        .from("integration_connections")
+        .update({ last_synced_at: new Date().toISOString(), last_error: errors[0] ?? null })
+        .eq("organization_id", data.organizationId)
+        .eq("site_id", data.siteId)
+        .eq("provider", "wordpress");
     } catch (err) {
       const msg = (err as Error).message;
       if (jobId) {
@@ -387,10 +440,17 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
             status: "failed",
             finished_at: new Date().toISOString(),
             error: msg,
+            error_message: msg,
+            items_processed: synced,
             result: { synced, errors } as Json,
           })
           .eq("id", jobId);
       }
+      await supabase
+        .from("sites")
+        .update({ status: "sync_failed" })
+        .eq("id", data.siteId)
+        .eq("organization_id", data.organizationId);
       await audit(supabase, userId, data.organizationId, "wp.sync.error", data.siteId, {
         message: msg,
         synced,
@@ -402,8 +462,10 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
       await supabase
         .from("background_jobs")
         .update({
-          status: "succeeded",
+          status: errors.length ? "failed" : "completed",
           finished_at: new Date().toISOString(),
+          items_processed: synced,
+          error_message: errors[0] ?? null,
           result: { synced, errors } as Json,
         })
         .eq("id", jobId);

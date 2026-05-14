@@ -228,8 +228,10 @@ export type Database = {
           created_at: string
           created_by: string
           error: string | null
+          error_message: string | null
           finished_at: string | null
           id: string
+          items_processed: number
           job_type: string
           organization_id: string
           payload: Json
@@ -237,13 +239,16 @@ export type Database = {
           site_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["job_status"]
+          total_items: number | null
         }
         Insert: {
           created_at?: string
           created_by: string
           error?: string | null
+          error_message?: string | null
           finished_at?: string | null
           id?: string
+          items_processed?: number
           job_type: string
           organization_id: string
           payload?: Json
@@ -251,13 +256,16 @@ export type Database = {
           site_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
+          total_items?: number | null
         }
         Update: {
           created_at?: string
           created_by?: string
           error?: string | null
+          error_message?: string | null
           finished_at?: string | null
           id?: string
+          items_processed?: number
           job_type?: string
           organization_id?: string
           payload?: Json
@@ -265,6 +273,7 @@ export type Database = {
           site_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
+          total_items?: number | null
         }
         Relationships: [
           {
@@ -1353,6 +1362,7 @@ export type Database = {
           content_text: string | null
           created_at: string
           excerpt: string | null
+          featured_image_url: string | null
           freshness_score: number | null
           geo_score: number | null
           id: string
@@ -1360,6 +1370,7 @@ export type Database = {
           organization_id: string
           post_type: string
           published_at: string | null
+          reading_time: number | null
           recommended_action: string | null
           seo_score: number | null
           site_id: string
@@ -1380,6 +1391,7 @@ export type Database = {
           content_text?: string | null
           created_at?: string
           excerpt?: string | null
+          featured_image_url?: string | null
           freshness_score?: number | null
           geo_score?: number | null
           id?: string
@@ -1387,6 +1399,7 @@ export type Database = {
           organization_id: string
           post_type?: string
           published_at?: string | null
+          reading_time?: number | null
           recommended_action?: string | null
           seo_score?: number | null
           site_id: string
@@ -1407,6 +1420,7 @@ export type Database = {
           content_text?: string | null
           created_at?: string
           excerpt?: string | null
+          featured_image_url?: string | null
           freshness_score?: number | null
           geo_score?: number | null
           id?: string
@@ -1414,6 +1428,7 @@ export type Database = {
           organization_id?: string
           post_type?: string
           published_at?: string | null
+          reading_time?: number | null
           recommended_action?: string | null
           seo_score?: number | null
           site_id?: string
@@ -1489,9 +1504,23 @@ export type Database = {
         | "ga4"
         | "openai"
         | "lovable_ai"
-      job_status: "queued" | "running" | "succeeded" | "failed" | "cancelled"
+      job_status:
+        | "queued"
+        | "running"
+        | "succeeded"
+        | "failed"
+        | "cancelled"
+        | "completed"
       org_role: "owner" | "admin" | "editor" | "analyst" | "viewer"
-      site_status: "connected" | "disconnected" | "error" | "pending"
+      site_status:
+        | "connected"
+        | "disconnected"
+        | "error"
+        | "pending"
+        | "verifying"
+        | "sync_running"
+        | "sync_failed"
+        | "stale"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
         | "todo"
@@ -1632,9 +1661,25 @@ export const Constants = {
       audit_status: ["queued", "running", "completed", "failed"],
       connection_status: ["pending", "connected", "error", "revoked"],
       integration_provider: ["wordpress", "gsc", "ga4", "openai", "lovable_ai"],
-      job_status: ["queued", "running", "succeeded", "failed", "cancelled"],
+      job_status: [
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "completed",
+      ],
       org_role: ["owner", "admin", "editor", "analyst", "viewer"],
-      site_status: ["connected", "disconnected", "error", "pending"],
+      site_status: [
+        "connected",
+        "disconnected",
+        "error",
+        "pending",
+        "verifying",
+        "sync_running",
+        "sync_failed",
+        "stale",
+      ],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [
         "todo",
