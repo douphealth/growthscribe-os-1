@@ -361,36 +361,61 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
         status: "running",
         started_at: new Date().toISOString(),
         payload: { siteId: data.siteId } as Json,
+        items_processed: 0,
       })
       .select("id")
       .single();
     const jobId = job?.id ?? null;
+
+    await supabase
+      .from("sites")
+      .update({ status: "sync_running" })
+      .eq("id", data.siteId)
+      .eq("organization_id", data.organizationId);
+
+    const updateProgress = async (totalItems: number | null) => {
+      if (!jobId) return;
+      await supabase
+        .from("background_jobs")
+        .update({ items_processed: synced, total_items: totalItems })
+        .eq("id", jobId);
+    };
+
     try {
-      const [posts, pages] = await Promise.all([
-        fetchAll(conn.url, headers, "posts").catch((e) => {
-          errors.push(`posts: ${e.message}`);
-          return [] as WpItem[];
-        }),
-        fetchAll(conn.url, headers, "pages").catch((e) => {
-          errors.push(`pages: ${e.message}`);
-          return [] as WpItem[];
-        }),
-      ]);
-      const rows = [...posts, ...pages].map((it) => mapItem(it, data.organizationId, data.siteId));
-      // Upsert in chunks
-      for (let i = 0; i < rows.length; i += 100) {
-        const chunk = rows.slice(i, i + 100);
-        const { error } = await supabase
-          .from("wordpress_posts")
-          .upsert(chunk, { onConflict: "site_id,wp_post_id" });
-        if (error) throw error;
-        synced += chunk.length;
+      let totalItems: number | null = null;
+      for (const type of ["posts", "pages"] as const) {
+        try {
+          for await (const { batch, total } of paginate(conn.url, headers, type)) {
+            if (total != null) {
+              totalItems = (totalItems ?? 0) + (totalItems == null ? total : 0);
+            }
+            const rows = batch.map((it) => mapItem(it, data.organizationId, data.siteId));
+            const { error } = await supabase
+              .from("wordpress_posts")
+              .upsert(rows, { onConflict: "site_id,wp_post_id,post_type" });
+            if (error) throw error;
+            synced += rows.length;
+            await updateProgress(totalItems);
+          }
+        } catch (e) {
+          errors.push(`${type}: ${(e as Error).message}`);
+        }
       }
       await supabase
         .from("sites")
-        .update({ total_posts: synced, last_synced_at: new Date().toISOString() })
+        .update({
+          total_posts: synced,
+          last_synced_at: new Date().toISOString(),
+          status: errors.length ? "sync_failed" : "connected",
+        })
         .eq("id", data.siteId)
         .eq("organization_id", data.organizationId);
+      await supabase
+        .from("integration_connections")
+        .update({ last_synced_at: new Date().toISOString(), last_error: errors[0] ?? null })
+        .eq("organization_id", data.organizationId)
+        .eq("site_id", data.siteId)
+        .eq("provider", "wordpress");
     } catch (err) {
       const msg = (err as Error).message;
       if (jobId) {
@@ -400,10 +425,17 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
             status: "failed",
             finished_at: new Date().toISOString(),
             error: msg,
+            error_message: msg,
+            items_processed: synced,
             result: { synced, errors } as Json,
           })
           .eq("id", jobId);
       }
+      await supabase
+        .from("sites")
+        .update({ status: "sync_failed" })
+        .eq("id", data.siteId)
+        .eq("organization_id", data.organizationId);
       await audit(supabase, userId, data.organizationId, "wp.sync.error", data.siteId, {
         message: msg,
         synced,
@@ -415,8 +447,10 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
       await supabase
         .from("background_jobs")
         .update({
-          status: "succeeded",
+          status: errors.length ? "failed" : "completed",
           finished_at: new Date().toISOString(),
+          items_processed: synced,
+          error_message: errors[0] ?? null,
           result: { synced, errors } as Json,
         })
         .eq("id", jobId);
