@@ -137,48 +137,27 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
       detail = (err as Error).message;
     }
 
-    const { error: upErr } = await supabase
+    await supabase
       .from("integration_connections")
-      .upsert(
-        {
-          organization_id: data.organizationId,
-          site_id: data.siteId,
-          provider: "wordpress",
-          status: ok ? "connected" : "error",
-          created_by: userId,
-          last_error: ok ? null : detail,
-          last_synced_at: ok ? new Date().toISOString() : null,
-          config: {
-            url: base,
-            username: data.username,
-            app_password: data.appPassword,
-          } as Json,
-        },
-        { onConflict: "organization_id,site_id,provider" },
-      );
-    if (upErr) {
-      // Fallback when no unique constraint exists: delete + insert
-      await supabase
-        .from("integration_connections")
-        .delete()
-        .eq("organization_id", data.organizationId)
-        .eq("site_id", data.siteId)
-        .eq("provider", "wordpress");
-      await supabase.from("integration_connections").insert({
-        organization_id: data.organizationId,
-        site_id: data.siteId,
-        provider: "wordpress",
-        status: ok ? "connected" : "error",
-        created_by: userId,
-        last_error: ok ? null : detail,
-        last_synced_at: ok ? new Date().toISOString() : null,
-        config: {
-          url: base,
-          username: data.username,
-          app_password: data.appPassword,
-        } as Json,
-      });
-    }
+      .delete()
+      .eq("organization_id", data.organizationId)
+      .eq("site_id", data.siteId)
+      .eq("provider", "wordpress");
+    const { error: insErr } = await supabase.from("integration_connections").insert({
+      organization_id: data.organizationId,
+      site_id: data.siteId,
+      provider: "wordpress",
+      status: ok ? "connected" : "error",
+      created_by: userId,
+      last_error: ok ? null : detail,
+      last_synced_at: ok ? new Date().toISOString() : null,
+      config: {
+        url: base,
+        username: data.username,
+        app_password: data.appPassword,
+      } as Json,
+    });
+    if (insErr) throw insErr;
 
     if (ok) {
       await supabase
