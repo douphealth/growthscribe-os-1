@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { AuthProvider } from "@/lib/auth-context";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -72,16 +74,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "AMFS Growth OS is an enterprise command center for managing, optimizing, and growing WordPress websites." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "AMFS Growth OS is an enterprise command center for managing, optimizing, and growing WordPress websites." },
+      { title: "GrowthScribe OS — AI Growth Command Center for WordPress Publishers" },
+      { name: "description", content: "Enterprise-grade AI command center for SEO, AEO/GEO, topical authority, content audits, and editorial workflows on WordPress." },
+      { name: "author", content: "GrowthScribe" },
+      { property: "og:title", content: "GrowthScribe OS — AI Growth Command Center" },
+      { property: "og:description", content: "Rank, earn, and grow without mass-publishing low-quality AI content." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "AMFS Growth OS is an enterprise command center for managing, optimizing, and growing WordPress websites." },
+      { name: "twitter:title", content: "GrowthScribe OS" },
+      { name: "twitter:description", content: "Enterprise AI command center for organic growth on WordPress." },
     ],
     links: [
       {
@@ -115,7 +116,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+        <Toaster richColors position="top-right" />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
