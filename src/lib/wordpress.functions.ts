@@ -197,6 +197,7 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
       .eq("organization_id", data.organizationId)
       .eq("site_id", data.siteId)
       .eq("provider", "wordpress");
+    const encryptedAppPassword = await encryptSecret(data.appPassword);
     const { error: insErr } = await supabase.from("integration_connections").insert({
       organization_id: data.organizationId,
       site_id: data.siteId,
@@ -208,7 +209,7 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
       config: {
         url: base,
         username: data.username,
-        app_password: data.appPassword,
+        encrypted_app_password: encryptedAppPassword,
       } as Json,
     });
     if (insErr) throw insErr;
