@@ -257,26 +257,31 @@ type WpItem = {
   _embedded?: {
     author?: Array<{ name?: string }>;
     "wp:term"?: Array<Array<{ name?: string; taxonomy?: string }>>;
+    "wp:featuredmedia"?: Array<{ source_url?: string; media_details?: { sizes?: Record<string, { source_url?: string }> } }>;
   };
 };
 
-async function fetchAll(base: string, headers: Record<string, string>, type: "posts" | "pages") {
-  const out: WpItem[] = [];
+async function* paginate(
+  base: string,
+  headers: Record<string, string>,
+  type: "posts" | "pages",
+): AsyncGenerator<{ batch: WpItem[]; total: number | null }> {
   let page = 1;
   const perPage = 50;
-  // safety cap: 20 pages = 1000 items per type
-  while (page <= 20) {
+  // safety cap: 40 pages = 2000 items per type
+  while (page <= 40) {
     const url = `${base}/wp-json/wp/v2/${type}?per_page=${perPage}&page=${page}&status=publish,draft,future,private,pending&_embed=1&context=edit`;
     const res = await fetch(url, { headers });
-    if (res.status === 400 || res.status === 404) break;
+    if (res.status === 400 || res.status === 404) return;
     if (!res.ok) throw new Error(`WordPress ${type} fetch failed: HTTP ${res.status}`);
+    const totalHeader = res.headers.get("x-wp-total");
+    const total = totalHeader ? Number(totalHeader) : null;
     const batch = (await res.json()) as WpItem[];
-    if (!Array.isArray(batch) || batch.length === 0) break;
-    out.push(...batch);
-    if (batch.length < perPage) break;
+    if (!Array.isArray(batch) || batch.length === 0) return;
+    yield { batch, total };
+    if (batch.length < perPage) return;
     page += 1;
   }
-  return out;
 }
 
 function mapItem(item: WpItem, organizationId: string, siteId: string) {
@@ -297,6 +302,12 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
       ?.filter((t) => t.taxonomy === "post_tag")
       .map((t) => t.name)
       .filter(Boolean) ?? [];
+  const featuredMedia = item._embedded?.["wp:featuredmedia"]?.[0];
+  const featuredImageUrl =
+    featuredMedia?.source_url ??
+    featuredMedia?.media_details?.sizes?.large?.source_url ??
+    featuredMedia?.media_details?.sizes?.medium?.source_url ??
+    null;
   return {
     organization_id: organizationId,
     site_id: siteId,
@@ -310,11 +321,13 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
     content_html: html || null,
     content_text: text || null,
     word_count: wc,
+    reading_time: wc > 0 ? Math.max(1, Math.round(wc / 220)) : null,
     published_at: item.date_gmt ? new Date(item.date_gmt + "Z").toISOString() : null,
     modified_at: modified,
     author: item._embedded?.author?.[0]?.name ?? null,
     categories: cats as unknown as Json,
     tags: tags as unknown as Json,
+    featured_image_url: featuredImageUrl,
     freshness_score: fresh,
     recommended_action: recommendedAction({
       status: item.status ?? null,
