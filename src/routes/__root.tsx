@@ -73,13 +73,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { name: "description", content: "AMFS Growth OS is an enterprise command center for managing, optimizing, and growing WordPress websites." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:description", content: "AMFS Growth OS is an enterprise command center for managing, optimizing, and growing WordPress websites." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Lovable App" },
+      { name: "twitter:description", content: "AMFS Growth OS is an enterprise command center for managing, optimizing, and growing WordPress websites." },
     ],
     links: [
       {
