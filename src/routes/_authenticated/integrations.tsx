@@ -44,6 +44,8 @@ function IntegrationsPage() {
   const qc = useQueryClient();
   const verify = useServerFn(verifyWordpressConnection);
   const sync = useServerFn(syncWordpressContent);
+  const saveGsc = useServerFn(saveGscProperty);
+  const saveGa4 = useServerFn(saveGa4Property);
 
   const sitesQ = useQuery({
     queryKey: ["sites", orgId],
@@ -104,6 +106,12 @@ function IntegrationsPage() {
   const [username, setUsername] = useState("");
   const [appPassword, setAppPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [gscSiteId, setGscSiteId] = useState("");
+  const [gscProperty, setGscProperty] = useState("");
+  const [ga4SiteId, setGa4SiteId] = useState("");
+  const [ga4Property, setGa4Property] = useState("");
+  const [gscBusy, setGscBusy] = useState(false);
+  const [ga4Busy, setGa4Busy] = useState(false);
 
   const sites = sitesQ.data ?? [];
   const connections = connectionsQ.data ?? [];
