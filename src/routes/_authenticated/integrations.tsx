@@ -19,9 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plug, Globe, RefreshCw, Search, BarChart3 } from "lucide-react";
+import { Plug, Globe, RefreshCw, Search, BarChart3, Download } from "lucide-react";
 import { verifyWordpressConnection, syncWordpressContent } from "@/lib/wordpress.functions";
-import { saveGscProperty, saveGa4Property } from "@/lib/integrations.functions";
+import {
+  saveGscProperty,
+  saveGa4Property,
+  pullSearchConsole,
+  listGscProperties,
+} from "@/lib/integrations.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
@@ -46,6 +51,8 @@ function IntegrationsPage() {
   const sync = useServerFn(syncWordpressContent);
   const saveGsc = useServerFn(saveGscProperty);
   const saveGa4 = useServerFn(saveGa4Property);
+  const pullGsc = useServerFn(pullSearchConsole);
+  const fetchGscProps = useServerFn(listGscProperties);
 
   const sitesQ = useQuery({
     queryKey: ["sites", orgId],
@@ -112,6 +119,17 @@ function IntegrationsPage() {
   const [ga4Property, setGa4Property] = useState("");
   const [gscBusy, setGscBusy] = useState(false);
   const [ga4Busy, setGa4Busy] = useState(false);
+  const [gscPullBusyId, setGscPullBusyId] = useState<string | null>(null);
+
+  const propertiesQ = useQuery({
+    queryKey: ["gsc-properties", orgId],
+    enabled: !!orgId,
+    queryFn: async () => {
+      const res = await fetchGscProps({ data: { organizationId: orgId! } });
+      return res;
+    },
+    staleTime: 60_000,
+  });
 
   const sites = sitesQ.data ?? [];
   const connections = connectionsQ.data ?? [];
@@ -197,6 +215,26 @@ function IntegrationsPage() {
       toast.error((err as Error).message);
     } finally {
       setGscBusy(false);
+    }
+  };
+
+  const handlePullGsc = async (sId: string) => {
+    if (!orgId) return;
+    setGscPullBusyId(sId);
+    const t = toast.loading("Pulling last 28 days from Search Console…");
+    try {
+      const res = await pullGsc({ data: { organizationId: orgId, siteId: sId, days: 28 } });
+      toast.success(
+        `Synced ${res.rows.toLocaleString()} rows · ${res.totals.clicks.toLocaleString()} clicks`,
+        { id: t },
+      );
+      qc.invalidateQueries({ queryKey: ["sites", orgId] });
+      qc.invalidateQueries({ queryKey: ["dashboard-stats", orgId] });
+      qc.invalidateQueries({ queryKey: ["activities", orgId] });
+    } catch (err) {
+      toast.error((err as Error).message, { id: t });
+    } finally {
+      setGscPullBusyId(null);
     }
   };
 
