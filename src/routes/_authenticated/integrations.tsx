@@ -25,6 +25,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
 type Connection = Database["public"]["Tables"]["integration_connections"]["Row"];
+type Job = Database["public"]["Tables"]["background_jobs"]["Row"];
 
 const formSchema = z.object({
   url: z.string().trim().url().max(500),
@@ -70,6 +71,32 @@ function IntegrationsPage() {
       return data ?? [];
     },
   });
+
+  const jobsQ = useQuery({
+    queryKey: ["wp-sync-jobs", orgId],
+    enabled: !!orgId,
+    refetchInterval: 4000,
+    queryFn: async (): Promise<Job[]> => {
+      const { data, error } = await supabase
+        .from("background_jobs")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .eq("job_type", "wordpress.sync")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const latestJobBySite = useMemo(() => {
+    const m = new Map<string, Job>();
+    for (const j of jobsQ.data ?? []) {
+      if (!j.site_id) continue;
+      if (!m.has(j.site_id)) m.set(j.site_id, j);
+    }
+    return m;
+  }, [jobsQ.data]);
 
   const [siteId, setSiteId] = useState<string>("");
   const [url, setUrl] = useState("");
@@ -138,6 +165,8 @@ function IntegrationsPage() {
       const res = await sync({ data: { organizationId: orgId, siteId: sId } });
       toast.success(`Synced ${res.synced} items`, { id: t });
       qc.invalidateQueries({ queryKey: ["wp-content", orgId] });
+      qc.invalidateQueries({ queryKey: ["wp-sync-jobs", orgId] });
+      qc.invalidateQueries({ queryKey: ["sites", orgId] });
     } catch (err) {
       toast.error((err as Error).message, { id: t });
     }
@@ -242,6 +271,12 @@ function IntegrationsPage() {
             ) : (
               sites.map((s) => {
                 const c = connBySite.get(s.id);
+                const job = latestJobBySite.get(s.id);
+                const running = job?.status === "running";
+                const pct =
+                  job && job.total_items
+                    ? Math.min(100, Math.round((job.items_processed / Math.max(1, job.total_items)) * 100))
+                    : null;
                 return (
                   <div
                     key={s.id}
@@ -250,24 +285,32 @@ function IntegrationsPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{s.name}</span>
-                        <Badge variant={c?.status === "connected" ? "default" : "secondary"}>
-                          {c?.status ?? "not connected"}
+                        <Badge variant={s.status === "connected" ? "default" : s.status === "sync_failed" || s.status === "error" ? "destructive" : "secondary"}>
+                          {s.status ?? "disconnected"}
                         </Badge>
+                        {running && (
+                          <Badge variant="outline">
+                            syncing {job?.items_processed ?? 0}
+                            {job?.total_items ? ` / ${job.total_items}` : ""}
+                            {pct != null ? ` · ${pct}%` : ""}
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
                         {c?.last_synced_at
-                          ? `Last sync ${new Date(c.last_synced_at).toLocaleString()}`
+                          ? `Last synced ${new Date(c.last_synced_at).toLocaleString()}`
                           : "Never synced"}
-                        {c?.last_error ? ` · ${c.last_error}` : ""}
+                        {job?.error_message ? ` · ${job.error_message}` : c?.last_error ? ` · ${c.last_error}` : ""}
                       </p>
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={!c || c.status !== "connected"}
+                      disabled={!c || c.status !== "connected" || running}
                       onClick={() => handleSync(s.id)}
                     >
-                      <RefreshCw className="h-3 w-3 mr-1" /> Sync
+                      <RefreshCw className={`h-3 w-3 mr-1 ${running ? "animate-spin" : ""}`} />
+                      {running ? "Syncing…" : "Sync now"}
                     </Button>
                   </div>
                 );
