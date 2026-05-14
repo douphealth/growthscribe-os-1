@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plug, Globe, RefreshCw } from "lucide-react";
+import { Plug, Globe, RefreshCw, Search, BarChart3 } from "lucide-react";
 import { verifyWordpressConnection, syncWordpressContent } from "@/lib/wordpress.functions";
+import { saveGscProperty, saveGa4Property } from "@/lib/integrations.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
