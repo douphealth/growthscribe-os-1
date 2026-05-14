@@ -619,6 +619,7 @@ export type Database = {
           config: Json
           created_at: string
           created_by: string
+          credential_secret_name: string | null
           id: string
           last_error: string | null
           last_synced_at: string | null
@@ -632,6 +633,7 @@ export type Database = {
           config?: Json
           created_at?: string
           created_by: string
+          credential_secret_name?: string | null
           id?: string
           last_error?: string | null
           last_synced_at?: string | null
@@ -645,6 +647,7 @@ export type Database = {
           config?: Json
           created_at?: string
           created_by?: string
+          credential_secret_name?: string | null
           id?: string
           last_error?: string | null
           last_synced_at?: string | null
