@@ -181,6 +181,44 @@ function IntegrationsPage() {
     }
   };
 
+  const handleGsc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgId || !gscSiteId || gscProperty.trim().length < 4) {
+      toast.error("Pick a site and enter a property");
+      return;
+    }
+    setGscBusy(true);
+    try {
+      await saveGsc({ data: { organizationId: orgId, siteId: gscSiteId, property: gscProperty.trim() } });
+      toast.success("Search Console linked");
+      setGscProperty("");
+      qc.invalidateQueries({ queryKey: ["sites", orgId] });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setGscBusy(false);
+    }
+  };
+
+  const handleGa4 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgId || !ga4SiteId || ga4Property.trim().length < 3) {
+      toast.error("Pick a site and enter a property ID");
+      return;
+    }
+    setGa4Busy(true);
+    try {
+      await saveGa4({ data: { organizationId: orgId, siteId: ga4SiteId, propertyId: ga4Property.trim() } });
+      toast.success("GA4 linked");
+      setGa4Property("");
+      qc.invalidateQueries({ queryKey: ["sites", orgId] });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setGa4Busy(false);
+    }
+  };
+
   return (
     <>
       <PageHeader
