@@ -5,6 +5,12 @@ import type { Json } from "@/integrations/supabase/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SB = any;
+type EncryptedSecret = {
+  v: 1;
+  alg: "AES-GCM";
+  iv: string;
+  ciphertext: string;
+};
 
 const orgSite = z.object({
   organizationId: z.string().uuid(),
@@ -57,9 +63,55 @@ async function getConnection(
   const cfg = (data.config ?? {}) as Record<string, unknown>;
   const url = typeof cfg.url === "string" ? cfg.url : null;
   const username = typeof cfg.username === "string" ? cfg.username : null;
-  const appPassword = typeof cfg.app_password === "string" ? cfg.app_password : null;
+  const appPassword = isEncryptedSecret(cfg.encrypted_app_password)
+    ? await decryptSecret(cfg.encrypted_app_password)
+    : null;
   if (!url || !username || !appPassword) return null;
   return { url, username, appPassword };
+}
+
+function getEncryptionMaterial() {
+  const material = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.LOVABLE_API_KEY;
+  if (!material) throw new Error("Server credential encryption key is not configured");
+  return material;
+}
+
+function b64(bytes: Uint8Array) {
+  return Buffer.from(bytes).toString("base64");
+}
+
+function fromB64(value: string) {
+  return new Uint8Array(Buffer.from(value, "base64"));
+}
+
+async function encryptionKey() {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(getEncryptionMaterial()));
+  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+function isEncryptedSecret(value: unknown): value is EncryptedSecret {
+  if (!value || typeof value !== "object") return false;
+  const maybe = value as Partial<EncryptedSecret>;
+  return maybe.v === 1 && maybe.alg === "AES-GCM" && typeof maybe.iv === "string" && typeof maybe.ciphertext === "string";
+}
+
+async function encryptSecret(secret: string): Promise<EncryptedSecret> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    await encryptionKey(),
+    new TextEncoder().encode(secret),
+  );
+  return { v: 1, alg: "AES-GCM", iv: b64(iv), ciphertext: b64(new Uint8Array(ciphertext)) };
+}
+
+async function decryptSecret(secret: EncryptedSecret): Promise<string> {
+  const plaintext = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: fromB64(secret.iv) },
+    await encryptionKey(),
+    fromB64(secret.ciphertext),
+  );
+  return new TextDecoder().decode(plaintext);
 }
 
 function authHeader(username: string, appPassword: string) {
