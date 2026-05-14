@@ -207,7 +207,9 @@ function IntegrationsPage() {
     }
     setGscBusy(true);
     try {
-      await saveGsc({ data: { organizationId: orgId, siteId: gscSiteId, property: gscProperty.trim() } });
+      await saveGsc({
+        data: { organizationId: orgId, siteId: gscSiteId, property: gscProperty.trim() },
+      });
       toast.success("Search Console linked");
       setGscProperty("");
       qc.invalidateQueries({ queryKey: ["sites", orgId] });
@@ -246,7 +248,9 @@ function IntegrationsPage() {
     }
     setGa4Busy(true);
     try {
-      await saveGa4({ data: { organizationId: orgId, siteId: ga4SiteId, propertyId: ga4Property.trim() } });
+      await saveGa4({
+        data: { organizationId: orgId, siteId: ga4SiteId, propertyId: ga4Property.trim() },
+      });
       toast.success("GA4 linked");
       setGa4Property("");
       qc.invalidateQueries({ queryKey: ["sites", orgId] });
@@ -425,8 +429,8 @@ function IntegrationsPage() {
               <Search className="h-4 w-4" /> Google Search Console
             </CardTitle>
             <CardDescription>
-              Pick a verified property from your linked Google account, save it, then pull the
-              last 28 days of clicks, impressions, and queries.
+              Pick a verified property from your linked Google account, save it, then pull the last
+              28 days of clicks, impressions, and queries.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -486,24 +490,21 @@ function IntegrationsPage() {
                   <Button type="submit" disabled={gscBusy}>
                     {gscBusy ? "Saving…" : "Link Search Console"}
                   </Button>
-                  {gscSiteId &&
-                    sites.find((s) => s.id === gscSiteId)?.gsc_property && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={gscPullBusyId === gscSiteId}
-                        onClick={() => handlePullGsc(gscSiteId)}
-                      >
-                        <Download
-                          className={`h-3 w-3 mr-1 ${
-                            gscPullBusyId === gscSiteId ? "animate-pulse" : ""
-                          }`}
-                        />
-                        {gscPullBusyId === gscSiteId
-                          ? "Pulling…"
-                          : "Pull last 28 days"}
-                      </Button>
-                    )}
+                  {gscSiteId && sites.find((s) => s.id === gscSiteId)?.gsc_property && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={gscPullBusyId === gscSiteId}
+                      onClick={() => handlePullGsc(gscSiteId)}
+                    >
+                      <Download
+                        className={`h-3 w-3 mr-1 ${
+                          gscPullBusyId === gscSiteId ? "animate-pulse" : ""
+                        }`}
+                      />
+                      {gscPullBusyId === gscSiteId ? "Pulling…" : "Pull last 28 days"}
+                    </Button>
+                  )}
                 </div>
               </form>
             )}

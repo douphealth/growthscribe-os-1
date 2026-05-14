@@ -23,9 +23,7 @@ function gscHeaders(): HeadersInit {
   const gsc = process.env.GOOGLE_SEARCH_CONSOLE_API_KEY;
   if (!lovable) throw new Error("LOVABLE_API_KEY is not configured");
   if (!gsc)
-    throw new Error(
-      "Google Search Console connector is not linked. Connect it from Integrations.",
-    );
+    throw new Error("Google Search Console connector is not linked. Connect it from Integrations.");
   return {
     Authorization: `Bearer ${lovable}`,
     "X-Connection-Api-Key": gsc,
@@ -180,10 +178,10 @@ export const pullSearchConsole = createServerFn({ method: "POST" })
           rowLimit,
           startRow,
         };
-        const json = (await gscFetch(
-          `/webmasters/v3/sites/${encoded}/searchAnalytics/query`,
-          { method: "POST", body: JSON.stringify(body) },
-        )) as {
+        const json = (await gscFetch(`/webmasters/v3/sites/${encoded}/searchAnalytics/query`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        })) as {
           rows?: {
             keys: string[];
             clicks: number;
@@ -209,9 +207,7 @@ export const pullSearchConsole = createServerFn({ method: "POST" })
 
         for (let i = 0; i < inserts.length; i += 500) {
           const chunk = inserts.slice(i, i + 500);
-          const { error: insErr } = await supabase
-            .from("search_console_daily")
-            .insert(chunk);
+          const { error: insErr } = await supabase.from("search_console_daily").insert(chunk);
           if (insErr) throw insErr;
         }
 

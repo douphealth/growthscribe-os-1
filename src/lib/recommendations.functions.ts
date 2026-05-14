@@ -179,10 +179,7 @@ export const generateRecommendations = createServerFn({ method: "POST" })
     // (lightweight heuristic by counting mentions across content_text)
     const winners = posts
       .map((p) => ({ p, s: byPage.get(p.url) }))
-      .filter(
-        (x): x is { p: typeof posts[number]; s: Stat } =>
-          !!x.s && x.s.impressions > 1000,
-      )
+      .filter((x): x is { p: (typeof posts)[number]; s: Stat } => !!x.s && x.s.impressions > 1000)
       .slice(0, 25);
 
     if (winners.length > 0) {

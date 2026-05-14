@@ -139,9 +139,7 @@ function BriefsPage() {
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" /> Generate brief
             </CardTitle>
-            <CardDescription>
-              Uses your synced posts as internal-link context.
-            </CardDescription>
+            <CardDescription>Uses your synced posts as internal-link context.</CardDescription>
           </CardHeader>
           <CardContent>
             {sites.length === 0 ? (
@@ -201,9 +199,7 @@ function BriefsPage() {
 
         <div className="lg:col-span-2 space-y-3">
           {briefsQ.isLoading ? (
-            [1, 2].map((i) => (
-              <div key={i} className="h-32 rounded-md bg-muted/30 animate-pulse" />
-            ))
+            [1, 2].map((i) => <div key={i} className="h-32 rounded-md bg-muted/30 animate-pulse" />)
           ) : briefs.length === 0 ? (
             <EmptyState
               icon={FileText}
@@ -213,9 +209,7 @@ function BriefsPage() {
           ) : (
             briefs.map((b) => {
               const outline = Array.isArray(b.outline) ? (b.outline as Json[]) : [];
-              const questions = Array.isArray(b.aeo_questions)
-                ? (b.aeo_questions as string[])
-                : [];
+              const questions = Array.isArray(b.aeo_questions) ? (b.aeo_questions as string[]) : [];
               return (
                 <Card key={b.id}>
                   <CardContent className="p-4 space-y-2">
@@ -226,9 +220,7 @@ function BriefsPage() {
                           {b.target_keyword ?? "no keyword"} · {b.word_count_target ?? "?"} words
                         </p>
                       </div>
-                      {b.search_intent && (
-                        <Badge variant="outline">{b.search_intent}</Badge>
-                      )}
+                      {b.search_intent && <Badge variant="outline">{b.search_intent}</Badge>}
                     </div>
                     {outline.length > 0 && (
                       <details className="text-sm">

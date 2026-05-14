@@ -98,7 +98,14 @@ export const runContentAudit = createServerFn({ method: "POST" })
               },
             },
           },
-          required: ["title", "quality_score", "eeat_score", "aeo_score", "ai_summary", "recommendations"],
+          required: [
+            "title",
+            "quality_score",
+            "eeat_score",
+            "aeo_score",
+            "ai_summary",
+            "recommendations",
+          ],
         },
       );
 

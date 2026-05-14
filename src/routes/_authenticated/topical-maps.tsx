@@ -29,11 +29,7 @@ export const Route = createFileRoute("/_authenticated/topical-maps")({
 });
 
 const coverageColor = (s: string | null) =>
-  s === "covered"
-    ? "default"
-    : s === "partial"
-      ? "secondary"
-      : "destructive";
+  s === "covered" ? "default" : s === "partial" ? "secondary" : "destructive";
 
 function TopicalMapsPage() {
   const { currentOrg } = useOrg();
@@ -162,11 +158,7 @@ function TopicalMapsPage() {
       ) : mapQ.isLoading ? (
         <div className="h-40 rounded-md bg-muted/30 animate-pulse" />
       ) : grouped.length === 0 ? (
-        <EmptyState
-          icon={Network}
-          title="No map yet"
-          description="Generate one for this site."
-        />
+        <EmptyState icon={Network} title="No map yet" description="Generate one for this site." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {grouped.map(({ pillar, clusters }) => (
@@ -178,18 +170,14 @@ function TopicalMapsPage() {
                     {pillar.coverage_status}
                   </Badge>
                 </div>
-                {pillar.intent && (
-                  <CardDescription>{pillar.intent}</CardDescription>
-                )}
+                {pillar.intent && <CardDescription>{pillar.intent}</CardDescription>}
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
                   {clusters.map((c) => (
                     <li key={c.id} className="flex items-center justify-between gap-2">
                       <span className="text-sm">{c.cluster}</span>
-                      <Badge variant={coverageColor(c.coverage_status)}>
-                        {c.coverage_status}
-                      </Badge>
+                      <Badge variant={coverageColor(c.coverage_status)}>{c.coverage_status}</Badge>
                     </li>
                   ))}
                 </ul>

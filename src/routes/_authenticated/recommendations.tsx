@@ -100,9 +100,7 @@ function Page() {
     () =>
       filter === "all"
         ? recs
-        : recs.filter((r) =>
-            filter === "open" ? r.status === "open" : r.category === filter,
-          ),
+        : recs.filter((r) => (filter === "open" ? r.status === "open" : r.category === filter)),
     [recs, filter],
   );
 
@@ -268,15 +266,11 @@ function Page() {
                               {r.severity}
                             </Badge>
                             <Badge variant="outline">{Meta.label}</Badge>
-                            {r.status !== "open" && (
-                              <Badge variant="secondary">{r.status}</Badge>
-                            )}
+                            {r.status !== "open" && <Badge variant="secondary">{r.status}</Badge>}
                           </div>
                           <p className="font-medium mt-1">{r.title}</p>
                           {r.detail && (
-                            <p className="text-sm text-muted-foreground mt-0.5">
-                              {r.detail}
-                            </p>
+                            <p className="text-sm text-muted-foreground mt-0.5">{r.detail}</p>
                           )}
                           {r.suggested_action && (
                             <p className="text-sm mt-1">
