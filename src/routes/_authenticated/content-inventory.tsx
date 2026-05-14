@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -31,6 +32,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -41,6 +44,8 @@ import {
   FileSearch,
   FileText,
   ListTodo,
+  Download,
+  ChevronDown,
 } from "lucide-react";
 import { syncWordpressContent } from "@/lib/wordpress.functions";
 import { runContentAudit, generateContentBrief } from "@/lib/growth.functions";
@@ -48,6 +53,15 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
 type Post = Database["public"]["Tables"]["wordpress_posts"]["Row"];
+
+const STALE_DAYS = 180;
+const SCORE_RANGES: Record<string, [number, number]> = {
+  all: [0, 100],
+  "0-40": [0, 40],
+  "40-60": [40, 60],
+  "60-80": [60, 80],
+  "80-100": [80, 100],
+};
 
 export const Route = createFileRoute("/_authenticated/content-inventory")({
   component: ContentInventoryPage,
@@ -70,7 +84,14 @@ function ContentInventoryPage() {
   const genBrief = useServerFn(generateContentBrief);
 
   const [siteId, setSiteId] = useState<string>("all");
+  const [postType, setPostType] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [scoreRange, setScoreRange] = useState<string>("all");
+  const [staleOnly, setStaleOnly] = useState(false);
+  const [missingActionOnly, setMissingActionOnly] = useState(false);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const sitesQ = useQuery({
     queryKey: ["sites", orgId],
@@ -106,12 +127,54 @@ function ContentInventoryPage() {
   const sites = sitesQ.data ?? [];
   const posts = useMemo(() => {
     const list = postsQ.data ?? [];
-    if (!search.trim()) return list;
-    const s = search.toLowerCase();
-    return list.filter(
-      (p) => (p.title ?? "").toLowerCase().includes(s) || (p.url ?? "").toLowerCase().includes(s),
-    );
-  }, [postsQ.data, search]);
+    const s = search.trim().toLowerCase();
+    const [minScore, maxScore] = SCORE_RANGES[scoreRange] ?? SCORE_RANGES.all;
+    const cutoff = Date.now() - STALE_DAYS * 86_400_000;
+    return list.filter((p) => {
+      if (postType !== "all" && p.post_type !== postType) return false;
+      if (statusFilter !== "all" && (p.status ?? "") !== statusFilter) return false;
+      if (missingActionOnly && p.recommended_action) return false;
+      if (staleOnly) {
+        const t = p.modified_at ? new Date(p.modified_at).getTime() : 0;
+        if (t >= cutoff) return false;
+      }
+      if (scoreRange !== "all") {
+        const score = p.seo_score ?? p.aeo_score ?? p.geo_score ?? p.freshness_score ?? null;
+        if (score == null || score < minScore || score > maxScore) return false;
+      }
+      if (s) {
+        const hay = `${p.title ?? ""} ${p.url ?? ""}`.toLowerCase();
+        if (!hay.includes(s)) return false;
+      }
+      return true;
+    });
+  }, [postsQ.data, search, postType, statusFilter, scoreRange, staleOnly, missingActionOnly]);
+
+  const postTypes = useMemo(
+    () => Array.from(new Set((postsQ.data ?? []).map((p) => p.post_type))).sort(),
+    [postsQ.data],
+  );
+  const statuses = useMemo(
+    () =>
+      Array.from(new Set((postsQ.data ?? []).map((p) => p.status).filter(Boolean) as string[])).sort(),
+    [postsQ.data],
+  );
+
+  const allSelected = posts.length > 0 && posts.every((p) => selected.has(p.id));
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(posts.map((p) => p.id)));
+  };
+  const toggleOne = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  };
+  const selectedPosts = useMemo(
+    () => posts.filter((p) => selected.has(p.id)),
+    [posts, selected],
+  );
 
   if (!currentOrg) {
     return (
@@ -198,6 +261,93 @@ function ContentInventoryPage() {
     navigate({ to: "/tasks" });
   };
 
+  const bulkAudit = async () => {
+    if (!orgId || selectedPosts.length === 0) return;
+    setBulkBusy(true);
+    const t = toast.loading(`Queuing ${selectedPosts.length} audits…`);
+    let ok = 0;
+    for (const p of selectedPosts) {
+      try {
+        await runAudit({ data: { organizationId: orgId, siteId: p.site_id, url: p.url } });
+        ok += 1;
+      } catch {
+        /* continue */
+      }
+    }
+    toast.success(`Queued ${ok}/${selectedPosts.length} audits`, { id: t });
+    setBulkBusy(false);
+  };
+
+  const bulkBrief = async () => {
+    if (!orgId || selectedPosts.length === 0) return;
+    setBulkBusy(true);
+    const t = toast.loading(`Generating ${selectedPosts.length} briefs…`);
+    let ok = 0;
+    for (const p of selectedPosts) {
+      if (!p.title) continue;
+      try {
+        await genBrief({ data: { organizationId: orgId, siteId: p.site_id, title: p.title } });
+        ok += 1;
+      } catch {
+        /* continue */
+      }
+    }
+    toast.success(`Created ${ok} briefs`, { id: t });
+    setBulkBusy(false);
+  };
+
+  const bulkTask = async () => {
+    if (!orgId || !user || selectedPosts.length === 0) return;
+    setBulkBusy(true);
+    const rows = selectedPosts.map((p) => ({
+      organization_id: orgId,
+      site_id: p.site_id,
+      owner_id: user.id,
+      title: `Action on: ${p.title ?? p.url}`,
+      description: p.recommended_action ?? "Review content",
+    }));
+    const { error } = await supabase.from("tasks").insert(rows);
+    if (error) toast.error(error.message);
+    else toast.success(`Created ${rows.length} tasks`);
+    setBulkBusy(false);
+  };
+
+  const exportCsv = () => {
+    const rows = (selectedPosts.length ? selectedPosts : posts).map((p) => ({
+      title: p.title ?? "",
+      url: p.url,
+      post_type: p.post_type,
+      status: p.status ?? "",
+      modified_at: p.modified_at ?? "",
+      word_count: p.word_count ?? "",
+      seo_score: p.seo_score ?? "",
+      aeo_score: p.aeo_score ?? "",
+      geo_score: p.geo_score ?? "",
+      freshness_score: p.freshness_score ?? "",
+      recommended_action: p.recommended_action ?? "",
+    }));
+    if (rows.length === 0) {
+      toast.error("Nothing to export");
+      return;
+    }
+    const headers = Object.keys(rows[0]);
+    const escape = (v: unknown) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [
+      headers.join(","),
+      ...rows.map((r) => headers.map((h) => escape((r as Record<string, unknown>)[h])).join(",")),
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `content-inventory-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <PageHeader
@@ -210,26 +360,83 @@ function ContentInventoryPage() {
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <Select value={siteId} onValueChange={setSiteId}>
-          <SelectTrigger className="sm:w-56">
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Site" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All sites</SelectItem>
             {sites.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Select value={postType} onValueChange={setPostType}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            {postTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any status</SelectItem>
+            {statuses.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+          </SelectContent>
+        </Select>
+        <Select value={scoreRange} onValueChange={setScoreRange}>
+          <SelectTrigger className="w-36"><SelectValue placeholder="Score" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any score</SelectItem>
+            <SelectItem value="0-40">0–40</SelectItem>
+            <SelectItem value="40-60">40–60</SelectItem>
+            <SelectItem value="60-80">60–80</SelectItem>
+            <SelectItem value="80-100">80–100</SelectItem>
+          </SelectContent>
+        </Select>
+        <label className="flex items-center gap-2 text-sm px-3 rounded-md border">
+          <Checkbox checked={staleOnly} onCheckedChange={(v) => setStaleOnly(!!v)} />
+          Stale (&gt;{STALE_DAYS}d)
+        </label>
+        <label className="flex items-center gap-2 text-sm px-3 rounded-md border">
+          <Checkbox checked={missingActionOnly} onCheckedChange={(v) => setMissingActionOnly(!!v)} />
+          Missing action
+        </label>
         <Input
           placeholder="Search title or URL…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-[180px]"
         />
       </div>
+
+      {selected.size > 0 && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-md border bg-muted/30">
+          <span className="text-sm font-medium">{selected.size} selected</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" disabled={bulkBusy}>
+                Bulk actions <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Apply to {selected.size} item(s)</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={bulkAudit}><FileSearch className="h-4 w-4 mr-2" /> Run audits</DropdownMenuItem>
+              <DropdownMenuItem onClick={bulkBrief}><FileText className="h-4 w-4 mr-2" /> Generate briefs</DropdownMenuItem>
+              <DropdownMenuItem onClick={bulkTask}><ListTodo className="h-4 w-4 mr-2" /> Create tasks</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportCsv}><Download className="h-4 w-4 mr-2" /> Export CSV</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+          <div className="ml-auto">
+            <Button size="sm" variant="outline" onClick={exportCsv}>
+              <Download className="h-3 w-3 mr-1" /> Export CSV
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -265,6 +472,9 @@ function ContentInventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8">
+                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
+                  </TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead>Status</TableHead>
@@ -281,6 +491,13 @@ function ContentInventoryPage() {
               <TableBody>
                 {posts.map((p) => (
                   <TableRow key={p.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selected.has(p.id)}
+                        onCheckedChange={() => toggleOne(p.id)}
+                        aria-label="Select row"
+                      />
+                    </TableCell>
                     <TableCell className="max-w-[260px]">
                       <div className="font-medium truncate">{p.title ?? "(untitled)"}</div>
                       <a
