@@ -1,16 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 const orgScoped = z.object({ organizationId: z.string().uuid() });
 
-async function assertMember(
-  supabase: Awaited<ReturnType<typeof requireSupabaseAuth.client>> extends never
-    ? never
-    : any,
-  userId: string,
-  organizationId: string,
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SB = any;
+
+async function assertMember(supabase: SB, userId: string, organizationId: string) {
   const { data, error } = await supabase
     .from("organization_members")
     .select("id")
@@ -22,11 +20,11 @@ async function assertMember(
 }
 
 async function enqueue(
-  supabase: any,
+  supabase: SB,
   organizationId: string,
   userId: string,
   jobType: string,
-  payload: Record<string, unknown>,
+  payload: Json,
   siteId?: string,
 ) {
   const { data, error } = await supabase
@@ -141,7 +139,7 @@ export const requestPublishApproval = createServerFn({ method: "POST" })
     orgScoped.extend({
       siteId: z.string().uuid(),
       briefId: z.string().uuid().optional(),
-      draftPayload: z.record(z.string(), z.unknown()),
+      draftPayload: z.record(z.string(), z.any()),
     }).parse(i),
   )
   .handler(async ({ data, context }) => {
@@ -154,7 +152,7 @@ export const requestPublishApproval = createServerFn({ method: "POST" })
         site_id: data.siteId,
         brief_id: data.briefId ?? null,
         requested_by: userId,
-        draft_payload: data.draftPayload,
+        draft_payload: data.draftPayload as Json,
         status: "pending",
       })
       .select()
