@@ -280,11 +280,11 @@ async function* paginate(
   base: string,
   headers: Record<string, string>,
   type: "posts" | "pages",
-): AsyncGenerator<{ batch: WpItem[]; total: number | null }> {
+): AsyncGenerator<{ batch: WpItem[]; total: number | null; page: number; capped: boolean }> {
   let page = 1;
   const perPage = 50;
-  // safety cap: 40 pages = 2000 items per type
-  while (page <= 40) {
+  const PAGE_CAP = 40; // safety cap: 40 pages = 2000 items per type
+  while (page <= PAGE_CAP) {
     const url = `${base}/wp-json/wp/v2/${type}?per_page=${perPage}&page=${page}&status=publish,draft,future,private,pending&_embed=1&context=edit`;
     const res = await fetch(url, { headers });
     if (res.status === 400 || res.status === 404) return;
@@ -293,7 +293,8 @@ async function* paginate(
     const total = totalHeader ? Number(totalHeader) : null;
     const batch = (await res.json()) as WpItem[];
     if (!Array.isArray(batch) || batch.length === 0) return;
-    yield { batch, total };
+    const capped = page === PAGE_CAP && batch.length === perPage;
+    yield { batch, total, page, capped };
     if (batch.length < perPage) return;
     page += 1;
   }
@@ -366,21 +367,28 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
 
     let synced = 0;
     const errors: string[] = [];
-    const { data: job } = await supabase
-      .from("background_jobs")
-      .insert({
-        organization_id: data.organizationId,
-        site_id: data.siteId,
-        created_by: userId,
-        job_type: "wordpress.sync",
-        status: "running",
-        started_at: new Date().toISOString(),
-        payload: { siteId: data.siteId } as Json,
-        items_processed: 0,
-      })
-      .select("id")
-      .single();
-    const jobId = job?.id ?? null;
+    const warnings: string[] = [];
+    let jobId: string | null = null;
+    try {
+      const { data: job, error: jobErr } = await supabase
+        .from("background_jobs")
+        .insert({
+          organization_id: data.organizationId,
+          site_id: data.siteId,
+          created_by: userId,
+          job_type: "wordpress.sync",
+          status: "running",
+          started_at: new Date().toISOString(),
+          payload: { siteId: data.siteId } as Json,
+          items_processed: 0,
+        })
+        .select("id")
+        .single();
+      if (jobErr) throw jobErr;
+      jobId = job?.id ?? null;
+    } catch (e) {
+      warnings.push(`background_jobs.create: ${(e as Error).message}`);
+    }
 
     await supabase
       .from("sites")
@@ -388,29 +396,42 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
       .eq("id", data.siteId)
       .eq("organization_id", data.organizationId);
 
-    const updateProgress = async (totalItems: number | null) => {
+    const totalsByType: Record<"posts" | "pages", number | null> = { posts: null, pages: null };
+    const computeTotal = (): number | null => {
+      const p = totalsByType.posts;
+      const g = totalsByType.pages;
+      if (p == null && g == null) return null;
+      return (p ?? 0) + (g ?? 0);
+    };
+    const updateProgress = async () => {
       if (!jobId) return;
-      await supabase
-        .from("background_jobs")
-        .update({ items_processed: synced, total_items: totalItems })
-        .eq("id", jobId);
+      try {
+        await supabase
+          .from("background_jobs")
+          .update({ items_processed: synced, total_items: computeTotal() })
+          .eq("id", jobId);
+      } catch (e) {
+        warnings.push(`background_jobs.progress: ${(e as Error).message}`);
+      }
     };
 
     try {
-      let totalItems: number | null = null;
       for (const type of ["posts", "pages"] as const) {
         try {
-          for await (const { batch, total } of paginate(conn.url, headers, type)) {
-            if (total != null) {
-              totalItems = (totalItems ?? 0) + (totalItems == null ? total : 0);
-            }
+          for await (const { batch, total, capped } of paginate(conn.url, headers, type)) {
+            if (total != null) totalsByType[type] = total;
             const rows = batch.map((it) => mapItem(it, data.organizationId, data.siteId));
             const { error } = await supabase
               .from("wordpress_posts")
               .upsert(rows, { onConflict: "site_id,wp_post_id,post_type" });
             if (error) throw error;
             synced += rows.length;
-            await updateProgress(totalItems);
+            await updateProgress();
+            if (capped) {
+              warnings.push(
+                `${type}: pagination cap reached (40 pages / 2000 items); sync may be incomplete`,
+              );
+            }
           }
         } catch (e) {
           errors.push(`${type}: ${(e as Error).message}`);
@@ -434,17 +455,21 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
     } catch (err) {
       const msg = (err as Error).message;
       if (jobId) {
-        await supabase
-          .from("background_jobs")
-          .update({
-            status: "failed",
-            finished_at: new Date().toISOString(),
-            error: msg,
-            error_message: msg,
-            items_processed: synced,
-            result: { synced, errors } as Json,
-          })
-          .eq("id", jobId);
+        try {
+          await supabase
+            .from("background_jobs")
+            .update({
+              status: "failed",
+              finished_at: new Date().toISOString(),
+              error: msg,
+              error_message: msg,
+              items_processed: synced,
+              result: { synced, errors, warnings } as Json,
+            })
+            .eq("id", jobId);
+        } catch (e) {
+          warnings.push(`background_jobs.finalize: ${(e as Error).message}`);
+        }
       }
       await supabase
         .from("sites")
@@ -454,28 +479,35 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
       await audit(supabase, userId, data.organizationId, "wp.sync.error", data.siteId, {
         message: msg,
         synced,
+        warnings,
       } as Json);
       throw err;
     }
 
     if (jobId) {
-      await supabase
-        .from("background_jobs")
-        .update({
-          status: errors.length ? "failed" : "completed",
-          finished_at: new Date().toISOString(),
-          items_processed: synced,
-          error_message: errors[0] ?? null,
-          result: { synced, errors } as Json,
-        })
-        .eq("id", jobId);
+      try {
+        await supabase
+          .from("background_jobs")
+          .update({
+            status: errors.length ? "failed" : "completed",
+            finished_at: new Date().toISOString(),
+            items_processed: synced,
+            total_items: computeTotal(),
+            error_message: errors[0] ?? null,
+            result: { synced, errors, warnings } as Json,
+          })
+          .eq("id", jobId);
+      } catch (e) {
+        warnings.push(`background_jobs.finalize: ${(e as Error).message}`);
+      }
     }
     await audit(supabase, userId, data.organizationId, "wp.sync", data.siteId, {
       synced,
       errors,
+      warnings,
       job_id: jobId,
     } as Json);
-    return { synced, errors };
+    return { synced, errors, warnings, jobId };
   });
 
 // ---------------------------------------------------------------------------
