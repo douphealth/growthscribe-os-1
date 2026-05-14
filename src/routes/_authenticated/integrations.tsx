@@ -425,8 +425,8 @@ function IntegrationsPage() {
               <Search className="h-4 w-4" /> Google Search Console
             </CardTitle>
             <CardDescription>
-              Save your verified GSC property URL (e.g. <code>https://example.com/</code> or
-              <code>sc-domain:example.com</code>).
+              Pick a verified property from your linked Google account, save it, then pull the
+              last 28 days of clicks, impressions, and queries.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -452,17 +452,59 @@ function IntegrationsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="gsc-prop">GSC property</Label>
-                  <Input
-                    id="gsc-prop"
-                    required
-                    placeholder="https://example.com/"
-                    value={gscProperty}
-                    onChange={(e) => setGscProperty(e.target.value)}
-                  />
+                  {propertiesQ.data?.ok && propertiesQ.data.properties.length > 0 ? (
+                    <Select value={gscProperty} onValueChange={setGscProperty}>
+                      <SelectTrigger id="gsc-prop">
+                        <SelectValue placeholder="Select a verified property" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {propertiesQ.data.properties.map((p) => (
+                          <SelectItem key={p.siteUrl} value={p.siteUrl}>
+                            {p.siteUrl}
+                            <span className="text-muted-foreground"> · {p.permissionLevel}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id="gsc-prop"
+                      required
+                      placeholder="https://example.com/ or sc-domain:example.com"
+                      value={gscProperty}
+                      onChange={(e) => setGscProperty(e.target.value)}
+                    />
+                  )}
+                  {propertiesQ.data && !propertiesQ.data.ok && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Couldn't list properties from Google: {propertiesQ.data.error}. Paste the
+                      property URL manually.
+                    </p>
+                  )}
                 </div>
-                <Button type="submit" disabled={gscBusy}>
-                  {gscBusy ? "Saving…" : "Link Search Console"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="submit" disabled={gscBusy}>
+                    {gscBusy ? "Saving…" : "Link Search Console"}
+                  </Button>
+                  {gscSiteId &&
+                    sites.find((s) => s.id === gscSiteId)?.gsc_property && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={gscPullBusyId === gscSiteId}
+                        onClick={() => handlePullGsc(gscSiteId)}
+                      >
+                        <Download
+                          className={`h-3 w-3 mr-1 ${
+                            gscPullBusyId === gscSiteId ? "animate-pulse" : ""
+                          }`}
+                        />
+                        {gscPullBusyId === gscSiteId
+                          ? "Pulling…"
+                          : "Pull last 28 days"}
+                      </Button>
+                    )}
+                </div>
               </form>
             )}
           </CardContent>
