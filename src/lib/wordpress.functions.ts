@@ -269,7 +269,10 @@ type WpItem = {
   _embedded?: {
     author?: Array<{ name?: string }>;
     "wp:term"?: Array<Array<{ name?: string; taxonomy?: string }>>;
-    "wp:featuredmedia"?: Array<{ source_url?: string; media_details?: { sizes?: Record<string, { source_url?: string }> } }>;
+    "wp:featuredmedia"?: Array<{
+      source_url?: string;
+      media_details?: { sizes?: Record<string, { source_url?: string }> };
+    }>;
   };
 };
 

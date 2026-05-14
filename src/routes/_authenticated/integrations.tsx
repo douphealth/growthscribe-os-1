@@ -275,7 +275,10 @@ function IntegrationsPage() {
                 const running = job?.status === "running";
                 const pct =
                   job && job.total_items
-                    ? Math.min(100, Math.round((job.items_processed / Math.max(1, job.total_items)) * 100))
+                    ? Math.min(
+                        100,
+                        Math.round((job.items_processed / Math.max(1, job.total_items)) * 100),
+                      )
                     : null;
                 return (
                   <div
@@ -285,7 +288,15 @@ function IntegrationsPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{s.name}</span>
-                        <Badge variant={s.status === "connected" ? "default" : s.status === "sync_failed" || s.status === "error" ? "destructive" : "secondary"}>
+                        <Badge
+                          variant={
+                            s.status === "connected"
+                              ? "default"
+                              : s.status === "sync_failed" || s.status === "error"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
                           {s.status ?? "disconnected"}
                         </Badge>
                         {running && (
@@ -300,7 +311,11 @@ function IntegrationsPage() {
                         {c?.last_synced_at
                           ? `Last synced ${new Date(c.last_synced_at).toLocaleString()}`
                           : "Never synced"}
-                        {job?.error_message ? ` · ${job.error_message}` : c?.last_error ? ` · ${c.last_error}` : ""}
+                        {job?.error_message
+                          ? ` · ${job.error_message}`
+                          : c?.last_error
+                            ? ` · ${c.last_error}`
+                            : ""}
                       </p>
                     </div>
                     <Button

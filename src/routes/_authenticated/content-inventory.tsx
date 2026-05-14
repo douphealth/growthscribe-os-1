@@ -156,7 +156,9 @@ function ContentInventoryPage() {
   );
   const statuses = useMemo(
     () =>
-      Array.from(new Set((postsQ.data ?? []).map((p) => p.status).filter(Boolean) as string[])).sort(),
+      Array.from(
+        new Set((postsQ.data ?? []).map((p) => p.status).filter(Boolean) as string[]),
+      ).sort(),
     [postsQ.data],
   );
 
@@ -171,10 +173,7 @@ function ContentInventoryPage() {
     else next.add(id);
     setSelected(next);
   };
-  const selectedPosts = useMemo(
-    () => posts.filter((p) => selected.has(p.id)),
-    [posts, selected],
-  );
+  const selectedPosts = useMemo(() => posts.filter((p) => selected.has(p.id)), [posts, selected]);
 
   if (!currentOrg) {
     return (
@@ -362,30 +361,48 @@ function ContentInventoryPage() {
 
       <div className="flex flex-wrap gap-2 mb-4">
         <Select value={siteId} onValueChange={setSiteId}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Site" /></SelectTrigger>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Site" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All sites</SelectItem>
             {sites.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={postType} onValueChange={setPostType}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
-            {postTypes.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}
+            {postTypes.map((t) => (
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Any status</SelectItem>
-            {statuses.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
+            {statuses.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={scoreRange} onValueChange={setScoreRange}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Score" /></SelectTrigger>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="Score" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Any score</SelectItem>
             <SelectItem value="0-40">0–40</SelectItem>
@@ -399,7 +416,10 @@ function ContentInventoryPage() {
           Stale (&gt;{STALE_DAYS}d)
         </label>
         <label className="flex items-center gap-2 text-sm px-3 rounded-md border">
-          <Checkbox checked={missingActionOnly} onCheckedChange={(v) => setMissingActionOnly(!!v)} />
+          <Checkbox
+            checked={missingActionOnly}
+            onCheckedChange={(v) => setMissingActionOnly(!!v)}
+          />
           Missing action
         </label>
         <Input
@@ -422,14 +442,24 @@ function ContentInventoryPage() {
             <DropdownMenuContent align="start">
               <DropdownMenuLabel>Apply to {selected.size} item(s)</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={bulkAudit}><FileSearch className="h-4 w-4 mr-2" /> Run audits</DropdownMenuItem>
-              <DropdownMenuItem onClick={bulkBrief}><FileText className="h-4 w-4 mr-2" /> Generate briefs</DropdownMenuItem>
-              <DropdownMenuItem onClick={bulkTask}><ListTodo className="h-4 w-4 mr-2" /> Create tasks</DropdownMenuItem>
+              <DropdownMenuItem onClick={bulkAudit}>
+                <FileSearch className="h-4 w-4 mr-2" /> Run audits
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={bulkBrief}>
+                <FileText className="h-4 w-4 mr-2" /> Generate briefs
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={bulkTask}>
+                <ListTodo className="h-4 w-4 mr-2" /> Create tasks
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={exportCsv}><Download className="h-4 w-4 mr-2" /> Export CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportCsv}>
+                <Download className="h-4 w-4 mr-2" /> Export CSV
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
+            Clear
+          </Button>
           <div className="ml-auto">
             <Button size="sm" variant="outline" onClick={exportCsv}>
               <Download className="h-3 w-3 mr-1" /> Export CSV
@@ -473,7 +503,11 @@ function ContentInventoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8">
-                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={toggleAll}
+                      aria-label="Select all"
+                    />
                   </TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
