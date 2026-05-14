@@ -277,6 +277,20 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
 
     let synced = 0;
     const errors: string[] = [];
+    const { data: job } = await supabase
+      .from("background_jobs")
+      .insert({
+        organization_id: data.organizationId,
+        site_id: data.siteId,
+        created_by: userId,
+        job_type: "wordpress.sync",
+        status: "running",
+        started_at: new Date().toISOString(),
+        payload: { siteId: data.siteId } as Json,
+      })
+      .select("id")
+      .single();
+    const jobId = job?.id ?? null;
     try {
       const [posts, pages] = await Promise.all([
         fetchAll(conn.url, headers, "posts").catch((e) => {
@@ -305,6 +319,17 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
         .eq("organization_id", data.organizationId);
     } catch (err) {
       const msg = (err as Error).message;
+      if (jobId) {
+        await supabase
+          .from("background_jobs")
+          .update({
+            status: "failed",
+            finished_at: new Date().toISOString(),
+            error: msg,
+            result: { synced, errors } as Json,
+          })
+          .eq("id", jobId);
+      }
       await audit(supabase, userId, data.organizationId, "wp.sync.error", data.siteId, {
         message: msg,
         synced,
@@ -312,9 +337,20 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
       throw err;
     }
 
+    if (jobId) {
+      await supabase
+        .from("background_jobs")
+        .update({
+          status: "succeeded",
+          finished_at: new Date().toISOString(),
+          result: { synced, errors } as Json,
+        })
+        .eq("id", jobId);
+    }
     await audit(supabase, userId, data.organizationId, "wp.sync", data.siteId, {
       synced,
       errors,
+      job_id: jobId,
     } as Json);
     return { synced, errors };
   });
