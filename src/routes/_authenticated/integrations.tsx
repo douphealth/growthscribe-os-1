@@ -12,7 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plug, Globe, RefreshCw } from "lucide-react";
 import { verifyWordpressConnection, syncWordpressContent } from "@/lib/wordpress.functions";
 import type { Database } from "@/integrations/supabase/types";
@@ -42,7 +48,10 @@ function IntegrationsPage() {
     enabled: !!orgId,
     queryFn: async (): Promise<Site[]> => {
       const { data, error } = await supabase
-        .from("sites").select("*").eq("organization_id", orgId!).order("created_at");
+        .from("sites")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .order("created_at");
       if (error) throw error;
       return data ?? [];
     },
@@ -53,8 +62,10 @@ function IntegrationsPage() {
     enabled: !!orgId,
     queryFn: async (): Promise<Connection[]> => {
       const { data, error } = await supabase
-        .from("integration_connections").select("*")
-        .eq("organization_id", orgId!).eq("provider", "wordpress");
+        .from("integration_connections")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .eq("provider", "wordpress");
       if (error) throw error;
       return data ?? [];
     },
@@ -76,23 +87,38 @@ function IntegrationsPage() {
 
   if (!currentOrg) {
     return (
-      <EmptyState icon={Plug} title="No workspace selected"
+      <EmptyState
+        icon={Plug}
+        title="No workspace selected"
         description="Create or join a workspace to manage integrations."
-        action={<Button asChild><Link to="/onboarding">Start onboarding</Link></Button>} />
+        action={
+          <Button asChild>
+            <Link to="/onboarding">Start onboarding</Link>
+          </Button>
+        }
+      />
     );
   }
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orgId || !siteId) { toast.error("Pick a site"); return; }
+    if (!orgId || !siteId) {
+      toast.error("Pick a site");
+      return;
+    }
     const parsed = formSchema.safeParse({ url, username, appPassword });
-    if (!parsed.success) { toast.error(parsed.error.issues[0]?.message ?? "Invalid input"); return; }
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
+      return;
+    }
     setBusy(true);
     try {
       const res = await verify({ data: { organizationId: orgId, siteId, ...parsed.data } });
       if (res.ok) {
         toast.success("WordPress connected");
-        setUrl(""); setUsername(""); setAppPassword("");
+        setUrl("");
+        setUsername("");
+        setAppPassword("");
       } else {
         toast.error(`Verification failed: ${res.detail ?? "unknown error"}`);
       }
@@ -119,50 +145,85 @@ function IntegrationsPage() {
 
   return (
     <>
-      <PageHeader title="Integrations"
-        description="Connect your WordPress site using an Application Password. Credentials are stored server-side and never exposed to the browser." />
+      <PageHeader
+        title="Integrations"
+        description="Connect your WordPress site using an Application Password. Credentials are stored server-side and never exposed to the browser."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Plug className="h-4 w-4" /> Connect WordPress</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Plug className="h-4 w-4" /> Connect WordPress
+            </CardTitle>
             <CardDescription>
-              In WordPress: Users → Profile → Application Passwords. Generate a password and paste it below.
+              In WordPress: Users → Profile → Application Passwords. Generate a password and paste
+              it below.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {sites.length === 0 ? (
-              <EmptyState icon={Globe} title="Add a site first"
+              <EmptyState
+                icon={Globe}
+                title="Add a site first"
                 description="Create a site, then connect WordPress to it."
-                action={<Button asChild><Link to="/sites">Go to Sites</Link></Button>} />
+                action={
+                  <Button asChild>
+                    <Link to="/sites">Go to Sites</Link>
+                  </Button>
+                }
+              />
             ) : (
               <form onSubmit={handleConnect} className="space-y-4">
                 <div className="space-y-1.5">
                   <Label>Site</Label>
                   <Select value={siteId} onValueChange={setSiteId}>
-                    <SelectTrigger><SelectValue placeholder="Select a site" /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a site" />
+                    </SelectTrigger>
                     <SelectContent>
                       {sites.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="wp-url">WordPress URL</Label>
-                  <Input id="wp-url" type="url" required placeholder="https://example.com"
-                    value={url} onChange={(e) => setUrl(e.target.value)} />
+                  <Input
+                    id="wp-url"
+                    type="url"
+                    required
+                    placeholder="https://example.com"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="wp-user">Username</Label>
-                  <Input id="wp-user" required value={username} onChange={(e) => setUsername(e.target.value)} />
+                  <Input
+                    id="wp-user"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="wp-pass">Application Password</Label>
-                  <Input id="wp-pass" required type="password" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
-                    value={appPassword} onChange={(e) => setAppPassword(e.target.value)} />
+                  <Input
+                    id="wp-pass"
+                    required
+                    type="password"
+                    placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+                    value={appPassword}
+                    onChange={(e) => setAppPassword(e.target.value)}
+                  />
                 </div>
-                <Button type="submit" disabled={busy}>{busy ? "Verifying…" : "Verify & connect"}</Button>
+                <Button type="submit" disabled={busy}>
+                  {busy ? "Verifying…" : "Verify & connect"}
+                </Button>
               </form>
             )}
           </CardContent>
@@ -182,7 +243,10 @@ function IntegrationsPage() {
               sites.map((s) => {
                 const c = connBySite.get(s.id);
                 return (
-                  <div key={s.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between gap-3 rounded-md border p-3"
+                  >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium truncate">{s.name}</span>
@@ -191,12 +255,18 @@ function IntegrationsPage() {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground truncate">
-                        {c?.last_synced_at ? `Last sync ${new Date(c.last_synced_at).toLocaleString()}` : "Never synced"}
+                        {c?.last_synced_at
+                          ? `Last sync ${new Date(c.last_synced_at).toLocaleString()}`
+                          : "Never synced"}
                         {c?.last_error ? ` · ${c.last_error}` : ""}
                       </p>
                     </div>
-                    <Button size="sm" variant="outline" disabled={!c || c.status !== "connected"}
-                      onClick={() => handleSync(s.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!c || c.status !== "connected"}
+                      onClick={() => handleSync(s.id)}
+                    >
                       <RefreshCw className="h-3 w-3 mr-1" /> Sync
                     </Button>
                   </div>

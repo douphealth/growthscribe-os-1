@@ -16,7 +16,12 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 
 const orgSchema = z.object({
   name: z.string().trim().min(2).max(80),
-  slug: z.string().trim().min(2).max(60).regex(/^[a-z0-9-]+$/, "lowercase, numbers, dashes"),
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(60)
+    .regex(/^[a-z0-9-]+$/, "lowercase, numbers, dashes"),
 });
 
 function OnboardingPage() {
@@ -73,11 +78,23 @@ function OnboardingPage() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Workspace name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Media" required />
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Acme Media"
+                required
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="slug">URL slug</Label>
-              <Input id="slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="acme-media" required />
+              <Input
+                id="slug"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase())}
+                placeholder="acme-media"
+                required
+              />
             </div>
             <Button type="submit" disabled={submitting} className="w-full">
               {submitting ? "Creating…" : "Create workspace"}

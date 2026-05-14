@@ -9,10 +9,14 @@ export const Route = createFileRoute("/_authenticated/tasks")({
 function Page() {
   return (
     <>
-      <PageHeader title="Tasks" description="Editorial workflow: drafts, reviews, approvals, publishing." />
+      <PageHeader
+        title="Tasks"
+        description="Editorial workflow: drafts, reviews, approvals, publishing."
+      />
       <Card>
         <CardContent className="p-10 text-center text-sm text-muted-foreground">
-          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model, RLS, and server functions are already in place.
+          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model,
+          RLS, and server functions are already in place.
         </CardContent>
       </Card>
     </>

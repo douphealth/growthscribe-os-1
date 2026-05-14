@@ -12,7 +12,8 @@ function Page() {
       <PageHeader title="Audit Logs" description="Workspace activity and security events." />
       <Card>
         <CardContent className="p-10 text-center text-sm text-muted-foreground">
-          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model, RLS, and server functions are already in place.
+          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model,
+          RLS, and server functions are already in place.
         </CardContent>
       </Card>
     </>

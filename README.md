@@ -34,15 +34,15 @@ bun run dev
 
 Useful scripts:
 
-| Script | Purpose |
-| --- | --- |
-| `bun run dev` | Start the Vite dev server |
-| `bun run build` | Production build |
-| `bun run typecheck` | Strict TypeScript check |
-| `bun run lint` | ESLint |
-| `bun run check` | typecheck + lint |
-| `bun run test` | Run Vitest suite |
-| `bun run db:types` | Regenerate Supabase types |
+| Script              | Purpose                   |
+| ------------------- | ------------------------- |
+| `bun run dev`       | Start the Vite dev server |
+| `bun run build`     | Production build          |
+| `bun run typecheck` | Strict TypeScript check   |
+| `bun run lint`      | ESLint                    |
+| `bun run check`     | typecheck + lint          |
+| `bun run test`      | Run Vitest suite          |
+| `bun run db:types`  | Regenerate Supabase types |
 
 ## Environment Variables
 

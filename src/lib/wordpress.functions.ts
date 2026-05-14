@@ -113,11 +113,13 @@ function recommendedAction(opts: {
 export const verifyWordpressConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    orgSite.extend({
-      url: z.string().url().max(500),
-      username: z.string().min(1).max(120),
-      appPassword: z.string().min(8).max(200),
-    }).parse(i),
+    orgSite
+      .extend({
+        url: z.string().url().max(500),
+        username: z.string().min(1).max(120),
+        appPassword: z.string().min(8).max(200),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -168,7 +170,8 @@ export const verifyWordpressConnection = createServerFn({ method: "POST" })
     }
 
     await audit(supabase, userId, data.organizationId, "wp.verify", data.siteId, {
-      ok, detail,
+      ok,
+      detail,
     } as Json);
 
     return { ok, detail };
@@ -221,8 +224,18 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
   const wc = wordCount(text);
   const modified = item.modified_gmt ? new Date(item.modified_gmt + "Z").toISOString() : null;
   const fresh = freshnessScore(modified);
-  const cats = item._embedded?.["wp:term"]?.flat()?.filter((t) => t.taxonomy === "category").map((t) => t.name).filter(Boolean) ?? [];
-  const tags = item._embedded?.["wp:term"]?.flat()?.filter((t) => t.taxonomy === "post_tag").map((t) => t.name).filter(Boolean) ?? [];
+  const cats =
+    item._embedded?.["wp:term"]
+      ?.flat()
+      ?.filter((t) => t.taxonomy === "category")
+      .map((t) => t.name)
+      .filter(Boolean) ?? [];
+  const tags =
+    item._embedded?.["wp:term"]
+      ?.flat()
+      ?.filter((t) => t.taxonomy === "post_tag")
+      .map((t) => t.name)
+      .filter(Boolean) ?? [];
   return {
     organization_id: organizationId,
     site_id: siteId,
@@ -243,7 +256,9 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
     tags: tags as unknown as Json,
     freshness_score: fresh,
     recommended_action: recommendedAction({
-      status: item.status ?? null, wordCount: wc, freshness: fresh,
+      status: item.status ?? null,
+      wordCount: wc,
+      freshness: fresh,
     }),
     synced_at: new Date().toISOString(),
   };
@@ -264,8 +279,14 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
     const errors: string[] = [];
     try {
       const [posts, pages] = await Promise.all([
-        fetchAll(conn.url, headers, "posts").catch((e) => { errors.push(`posts: ${e.message}`); return [] as WpItem[]; }),
-        fetchAll(conn.url, headers, "pages").catch((e) => { errors.push(`pages: ${e.message}`); return [] as WpItem[]; }),
+        fetchAll(conn.url, headers, "posts").catch((e) => {
+          errors.push(`posts: ${e.message}`);
+          return [] as WpItem[];
+        }),
+        fetchAll(conn.url, headers, "pages").catch((e) => {
+          errors.push(`pages: ${e.message}`);
+          return [] as WpItem[];
+        }),
       ]);
       const rows = [...posts, ...pages].map((it) => mapItem(it, data.organizationId, data.siteId));
       // Upsert in chunks
@@ -285,13 +306,15 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
     } catch (err) {
       const msg = (err as Error).message;
       await audit(supabase, userId, data.organizationId, "wp.sync.error", data.siteId, {
-        message: msg, synced,
+        message: msg,
+        synced,
       } as Json);
       throw err;
     }
 
     await audit(supabase, userId, data.organizationId, "wp.sync", data.siteId, {
-      synced, errors,
+      synced,
+      errors,
     } as Json);
     return { synced, errors };
   });
@@ -354,9 +377,16 @@ export const createWordpressDraft = createServerFn({ method: "POST" })
     });
     const ok = res.ok;
     let body: WpItem | null = null;
-    try { body = (await res.json()) as WpItem; } catch { /* ignore */ }
+    try {
+      body = (await res.json()) as WpItem;
+    } catch {
+      /* ignore */
+    }
     await audit(supabase, userId, data.organizationId, "wp.draft.create", data.siteId, {
-      ok, status: res.status, wp_id: body?.id ?? null, title: data.title,
+      ok,
+      status: res.status,
+      wp_id: body?.id ?? null,
+      title: data.title,
     } as Json);
     if (!ok) throw new Error(`Create draft failed: HTTP ${res.status}`);
     return { wpPostId: body?.id ?? null, link: body?.link ?? null };
@@ -365,9 +395,12 @@ export const createWordpressDraft = createServerFn({ method: "POST" })
 export const updateWordpressDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    orgSite.extend({
-      wpPostId: z.number().int().positive(),
-    }).merge(draftFields.partial()).parse(i),
+    orgSite
+      .extend({
+        wpPostId: z.number().int().positive(),
+      })
+      .merge(draftFields.partial())
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -375,7 +408,8 @@ export const updateWordpressDraft = createServerFn({ method: "POST" })
     const conn = await getConnection(supabase, data.organizationId, data.siteId);
     if (!conn) {
       await audit(supabase, userId, data.organizationId, "wp.draft.update.denied", data.siteId, {
-        reason: "not_connected", wp_id: data.wpPostId,
+        reason: "not_connected",
+        wp_id: data.wpPostId,
       } as Json);
       throw new Error("WordPress is not connected for this site");
     }
@@ -396,7 +430,9 @@ export const updateWordpressDraft = createServerFn({ method: "POST" })
     });
     const ok = res.ok;
     await audit(supabase, userId, data.organizationId, "wp.draft.update", data.siteId, {
-      ok, status: res.status, wp_id: data.wpPostId,
+      ok,
+      status: res.status,
+      wp_id: data.wpPostId,
     } as Json);
     if (!ok) throw new Error(`Update draft failed: HTTP ${res.status}`);
     return { wpPostId: data.wpPostId };

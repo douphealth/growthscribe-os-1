@@ -76,14 +76,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "GrowthScribe OS — AI Growth Command Center for WordPress Publishers" },
-      { name: "description", content: "Enterprise-grade AI command center for SEO, AEO/GEO, topical authority, content audits, and editorial workflows on WordPress." },
+      {
+        name: "description",
+        content:
+          "Enterprise-grade AI command center for SEO, AEO/GEO, topical authority, content audits, and editorial workflows on WordPress.",
+      },
       { name: "author", content: "GrowthScribe" },
       { property: "og:title", content: "GrowthScribe OS — AI Growth Command Center" },
-      { property: "og:description", content: "Rank, earn, and grow without mass-publishing low-quality AI content." },
+      {
+        property: "og:description",
+        content: "Rank, earn, and grow without mass-publishing low-quality AI content.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "GrowthScribe OS" },
-      { name: "twitter:description", content: "Enterprise AI command center for organic growth on WordPress." },
+      {
+        name: "twitter:description",
+        content: "Enterprise AI command center for organic growth on WordPress.",
+      },
     ],
     links: [
       {

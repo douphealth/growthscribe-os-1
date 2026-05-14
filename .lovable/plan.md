@@ -1,4 +1,3 @@
-
 # GrowthScribe OS — Production Refactor Plan
 
 This is a large refactor (18 work items, schema changes, multi-tenancy, tests, server functions). I'll execute it in 5 sequenced phases so each phase leaves the app in a working state. The landing page and existing UI style stay intact throughout.
@@ -15,6 +14,7 @@ This is a large refactor (18 work items, schema changes, multi-tenancy, tests, s
 ## Phase 2 — Multi-tenant database migration
 
 One migration that:
+
 - Creates `organizations`, `organization_members` (with `org_role` enum: `owner`, `admin`, `editor`, `analyst`, `viewer`).
 - Adds security-definer helpers: `is_org_member(_user, _org)`, `has_org_role(_user, _org, _role)`, `current_user_orgs()`.
 - Adds `organization_id uuid` column to all business tables (`sites`, `content_audits`, `content_briefs`, `tasks`, `topical_maps`, `integrations`, `activities`).
@@ -26,6 +26,7 @@ One migration that:
 ## Phase 3 — Server functions
 
 Migrate to TanStack `createServerFn` (per stack rules — no Supabase Edge Functions). Create stubs in `src/lib/`:
+
 - `wordpress.functions.ts` → `verifyWordpressConnection`, `syncWordpressContent`, `createWordpressDraft`, `publishApprovedDraft`
 - `content.functions.ts` → `runContentAudit`, `generateContentBrief`
 - `approvals.functions.ts` → `requestPublishApproval`
