@@ -428,9 +428,7 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
             synced += rows.length;
             await updateProgress();
             if (capped) {
-              warnings.push(
-                `Reached pagination cap for ${type}; sync may be incomplete`,
-              );
+              warnings.push(`Reached pagination cap for ${type}; sync may be incomplete`);
             }
           }
         } catch (e) {

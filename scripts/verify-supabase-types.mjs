@@ -39,10 +39,7 @@ function extractBlock(source, headerRegex) {
 
 /** Get the Row block of a public table. */
 function getTableRow(tableName) {
-  const tableBody = extractBlock(
-    src,
-    new RegExp(`\\b${tableName}:\\s*\\{`, "m"),
-  );
+  const tableBody = extractBlock(src, new RegExp(`\\b${tableName}:\\s*\\{`, "m"));
   if (!tableBody) return null;
   return extractBlock(tableBody, /\bRow:\s*\{/);
 }
@@ -52,10 +49,7 @@ function getEnumValues(enumName) {
   // Match `enumName:` followed by union of string literals up to the next
   // top-level identifier (a line starting with two-word `name:` at same indent
   // or the closing brace of Enums).
-  const re = new RegExp(
-    `\\b${enumName}:\\s*((?:\\s*\\|?\\s*"[^"]+")+)`,
-    "m",
-  );
+  const re = new RegExp(`\\b${enumName}:\\s*((?:\\s*\\|?\\s*"[^"]+")+)`, "m");
   const m = re.exec(src);
   if (!m) return null;
   const values = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
@@ -143,26 +137,15 @@ checkEnum("site_status", [
 ]);
 
 // job_status must contain the lifecycle values used by background_jobs.
-checkEnum("job_status", [
-  "queued",
-  "running",
-  "succeeded",
-  "failed",
-  "cancelled",
-  "completed",
-]);
+checkEnum("job_status", ["queued", "running", "succeeded", "failed", "cancelled", "completed"]);
 
 // --- Report ---------------------------------------------------------------
 
 if (errors.length > 0) {
   console.error("✖ Generated Supabase types are stale or incomplete:");
   for (const e of errors) console.error(`  - ${e}`);
-  console.error(
-    "\nRun `bun run db:types` after applying migrations, then commit the result.",
-  );
+  console.error("\nRun `bun run db:types` after applying migrations, then commit the result.");
   process.exit(1);
 }
 
-console.log(
-  "✓ Supabase types include all required tables, columns, and enum values.",
-);
+console.log("✓ Supabase types include all required tables, columns, and enum values.");
