@@ -1,20 +1,46 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Globe, FileSearch, Network, FileText, ListTodo,
-  Plug, ScrollText, Settings, Sparkles, LogOut, Check, ChevronsUpDown, Plus,
-  Library, Lightbulb, Bot,
+  LayoutDashboard,
+  Globe,
+  FileSearch,
+  Network,
+  FileText,
+  ListTodo,
+  Plug,
+  ScrollText,
+  Settings,
+  Sparkles,
+  LogOut,
+  Check,
+  ChevronsUpDown,
+  Plus,
+  Library,
+  Lightbulb,
+  Bot,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useOrg } from "@/lib/org-context";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 const sections = [
@@ -82,7 +108,9 @@ export function AppSidebar() {
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link to="/onboarding"><Plus className="mr-2 h-3 w-3" /> New workspace</Link>
+              <Link to="/onboarding">
+                <Plus className="mr-2 h-3 w-3" /> New workspace
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -96,7 +124,9 @@ export function AppSidebar() {
                 {section.items
                   .filter((i) => !i.adminOnly || isAdmin)
                   .map((item) => {
-                    const active = location.pathname === item.url || location.pathname.startsWith(item.url + "/");
+                    const active =
+                      location.pathname === item.url ||
+                      location.pathname.startsWith(item.url + "/");
                     return (
                       <SidebarMenuItem key={item.url}>
                         <SidebarMenuButton asChild isActive={active}>

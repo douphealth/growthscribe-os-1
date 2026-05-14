@@ -9,10 +9,14 @@ export const Route = createFileRoute("/_authenticated/recommendations")({
 function Page() {
   return (
     <>
-      <PageHeader title="Recommendations" description="Prioritized improvements: refresh, merge, expand, internal linking." />
+      <PageHeader
+        title="Recommendations"
+        description="Prioritized improvements: refresh, merge, expand, internal linking."
+      />
       <Card>
         <CardContent className="p-10 text-center text-sm text-muted-foreground">
-          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model, RLS, and server functions are already in place.
+          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model,
+          RLS, and server functions are already in place.
         </CardContent>
       </Card>
     </>

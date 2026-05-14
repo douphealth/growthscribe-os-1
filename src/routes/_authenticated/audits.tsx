@@ -71,7 +71,9 @@ function AuditsPage() {
                     <p className="text-muted-foreground">Quality</p>
                     <p className="font-semibold">{a.quality_score ?? "—"}</p>
                   </div>
-                  <Badge variant={a.status === "completed" ? "default" : "secondary"}>{a.status}</Badge>
+                  <Badge variant={a.status === "completed" ? "default" : "secondary"}>
+                    {a.status}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>

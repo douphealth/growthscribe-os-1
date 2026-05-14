@@ -13,16 +13,34 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Library, ExternalLink, RefreshCw, MoreHorizontal, FileSearch, FileText, ListTodo,
+  Library,
+  ExternalLink,
+  RefreshCw,
+  MoreHorizontal,
+  FileSearch,
+  FileText,
+  ListTodo,
 } from "lucide-react";
 import { syncWordpressContent } from "@/lib/wordpress.functions";
 import { runContentAudit, generateContentBrief } from "@/lib/growth.functions";
@@ -59,7 +77,10 @@ function ContentInventoryPage() {
     enabled: !!orgId,
     queryFn: async (): Promise<Site[]> => {
       const { data, error } = await supabase
-        .from("sites").select("*").eq("organization_id", orgId!).order("name");
+        .from("sites")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .order("name");
       if (error) throw error;
       return data ?? [];
     },
@@ -69,7 +90,9 @@ function ContentInventoryPage() {
     queryKey: ["wp-content", orgId, siteId],
     enabled: !!orgId,
     queryFn: async (): Promise<Post[]> => {
-      let q = supabase.from("wordpress_posts").select("*")
+      let q = supabase
+        .from("wordpress_posts")
+        .select("*")
         .eq("organization_id", orgId!)
         .order("modified_at", { ascending: false, nullsFirst: false })
         .limit(500);
@@ -85,17 +108,23 @@ function ContentInventoryPage() {
     const list = postsQ.data ?? [];
     if (!search.trim()) return list;
     const s = search.toLowerCase();
-    return list.filter((p) =>
-      (p.title ?? "").toLowerCase().includes(s) ||
-      (p.url ?? "").toLowerCase().includes(s),
+    return list.filter(
+      (p) => (p.title ?? "").toLowerCase().includes(s) || (p.url ?? "").toLowerCase().includes(s),
     );
   }, [postsQ.data, search]);
 
   if (!currentOrg) {
     return (
-      <EmptyState icon={Library} title="No workspace selected"
+      <EmptyState
+        icon={Library}
+        title="No workspace selected"
         description="Create or join a workspace to view content."
-        action={<Button asChild><Link to="/onboarding">Start onboarding</Link></Button>} />
+        action={
+          <Button asChild>
+            <Link to="/onboarding">Start onboarding</Link>
+          </Button>
+        }
+      />
     );
   }
 
@@ -108,7 +137,9 @@ function ContentInventoryPage() {
       try {
         const results = await Promise.all(
           eligible.map((s) =>
-            sync({ data: { organizationId: orgId, siteId: s.id } }).catch((e) => ({ error: (e as Error).message })),
+            sync({ data: { organizationId: orgId, siteId: s.id } }).catch((e) => ({
+              error: (e as Error).message,
+            })),
           ),
         );
         const ok = results.filter((r) => !("error" in r)).length;
@@ -134,7 +165,9 @@ function ContentInventoryPage() {
       await runAudit({ data: { organizationId: orgId, siteId: p.site_id, url: p.url } });
       toast.success("Audit queued");
       navigate({ to: "/audits" });
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   const handleBrief = async (p: Post) => {
@@ -143,7 +176,9 @@ function ContentInventoryPage() {
       await genBrief({ data: { organizationId: orgId, siteId: p.site_id, title: p.title } });
       toast.success("Brief queued");
       navigate({ to: "/briefs" });
-    } catch (e) { toast.error((e as Error).message); }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   const handleTask = async (p: Post) => {
@@ -155,7 +190,10 @@ function ContentInventoryPage() {
       title: `Action on: ${p.title ?? p.url}`,
       description: p.recommended_action ?? "Review content",
     });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Task created");
     navigate({ to: "/tasks" });
   };
@@ -174,32 +212,54 @@ function ContentInventoryPage() {
 
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <Select value={siteId} onValueChange={setSiteId}>
-          <SelectTrigger className="sm:w-56"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="sm:w-56">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All sites</SelectItem>
-            {sites.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            {sites.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
-        <Input placeholder="Search title or URL…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input
+          placeholder="Search title or URL…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <Card>
         <CardContent className="p-0">
           {postsQ.isLoading ? (
             <div className="p-6 space-y-2">
-              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
           ) : postsQ.isError ? (
             <div className="p-10">
-              <EmptyState icon={Library} title="Couldn't load content"
+              <EmptyState
+                icon={Library}
+                title="Couldn't load content"
                 description={(postsQ.error as Error)?.message ?? "Unknown error"}
-                action={<Button onClick={() => postsQ.refetch()}>Retry</Button>} />
+                action={<Button onClick={() => postsQ.refetch()}>Retry</Button>}
+              />
             </div>
           ) : posts.length === 0 ? (
             <div className="p-10">
-              <EmptyState icon={Library} title="No content yet"
+              <EmptyState
+                icon={Library}
+                title="No content yet"
                 description="Connect WordPress and run a sync to populate your inventory."
-                action={<Button asChild><Link to="/integrations">Connect WordPress</Link></Button>} />
+                action={
+                  <Button asChild>
+                    <Link to="/integrations">Connect WordPress</Link>
+                  </Button>
+                }
+              />
             </div>
           ) : (
             <Table>
@@ -223,8 +283,12 @@ function ContentInventoryPage() {
                   <TableRow key={p.id}>
                     <TableCell className="max-w-[260px]">
                       <div className="font-medium truncate">{p.title ?? "(untitled)"}</div>
-                      <a href={p.url} target="_blank" rel="noreferrer"
-                        className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 truncate max-w-full">
+                      <a
+                        href={p.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 truncate max-w-full"
+                      >
                         {p.url} <ExternalLink className="h-3 w-3 flex-shrink-0" />
                       </a>
                     </TableCell>
@@ -232,7 +296,9 @@ function ContentInventoryPage() {
                       <Badge variant="outline">{p.post_type}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={p.status === "publish" ? "default" : "secondary"}>{p.status ?? "—"}</Badge>
+                      <Badge variant={p.status === "publish" ? "default" : "secondary"}>
+                        {p.status ?? "—"}
+                      </Badge>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
                       {p.modified_at ? new Date(p.modified_at).toLocaleDateString() : "—"}
@@ -240,17 +306,27 @@ function ContentInventoryPage() {
                     <TableCell className="hidden lg:table-cell text-right text-sm">
                       {p.word_count ?? "—"}
                     </TableCell>
-                    <TableCell className="text-right"><ScoreCell value={p.seo_score} /></TableCell>
-                    <TableCell className="text-right"><ScoreCell value={p.aeo_score} /></TableCell>
-                    <TableCell className="text-right"><ScoreCell value={p.geo_score} /></TableCell>
-                    <TableCell className="text-right"><ScoreCell value={p.freshness_score} /></TableCell>
+                    <TableCell className="text-right">
+                      <ScoreCell value={p.seo_score} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ScoreCell value={p.aeo_score} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ScoreCell value={p.geo_score} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <ScoreCell value={p.freshness_score} />
+                    </TableCell>
                     <TableCell className="hidden xl:table-cell text-xs text-muted-foreground max-w-[180px] truncate">
                       {p.recommended_action ?? "—"}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>

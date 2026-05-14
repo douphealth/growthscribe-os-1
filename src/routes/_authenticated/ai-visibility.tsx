@@ -9,10 +9,14 @@ export const Route = createFileRoute("/_authenticated/ai-visibility")({
 function Page() {
   return (
     <>
-      <PageHeader title="AI Visibility" description="Track citations across ChatGPT, Perplexity, Gemini, Google AI Overviews." />
+      <PageHeader
+        title="AI Visibility"
+        description="Track citations across ChatGPT, Perplexity, Gemini, Google AI Overviews."
+      />
       <Card>
         <CardContent className="p-10 text-center text-sm text-muted-foreground">
-          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model, RLS, and server functions are already in place.
+          This module is part of the GrowthScribe OS roadmap and is being wired up. The data model,
+          RLS, and server functions are already in place.
         </CardContent>
       </Card>
     </>

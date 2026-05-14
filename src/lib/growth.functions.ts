@@ -46,20 +46,29 @@ async function enqueue(
 export const verifyWordpressConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    orgScoped.extend({
-      siteId: z.string().uuid(),
-      url: z.string().url(),
-      username: z.string().min(1).max(120),
-      appPassword: z.string().min(8).max(200),
-    }).parse(i),
+    orgScoped
+      .extend({
+        siteId: z.string().uuid(),
+        url: z.string().url(),
+        username: z.string().min(1).max(120),
+        appPassword: z.string().min(8).max(200),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertMember(supabase, userId, data.organizationId);
-    const job = await enqueue(supabase, data.organizationId, userId, "wp_verify", {
-      url: data.url,
-      username: data.username,
-    }, data.siteId);
+    const job = await enqueue(
+      supabase,
+      data.organizationId,
+      userId,
+      "wp_verify",
+      {
+        url: data.url,
+        username: data.username,
+      },
+      data.siteId,
+    );
     return { jobId: job.id, status: "queued" as const };
   });
 
@@ -76,10 +85,12 @@ export const syncWordpressContent = createServerFn({ method: "POST" })
 export const runContentAudit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    orgScoped.extend({
-      siteId: z.string().uuid(),
-      url: z.string().url(),
-    }).parse(i),
+    orgScoped
+      .extend({
+        siteId: z.string().uuid(),
+        url: z.string().url(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -96,20 +107,30 @@ export const runContentAudit = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw error;
-    await enqueue(supabase, data.organizationId, userId, "content_audit", {
-      auditId: audit.id, url: data.url,
-    }, data.siteId);
+    await enqueue(
+      supabase,
+      data.organizationId,
+      userId,
+      "content_audit",
+      {
+        auditId: audit.id,
+        url: data.url,
+      },
+      data.siteId,
+    );
     return { auditId: audit.id };
   });
 
 export const generateContentBrief = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    orgScoped.extend({
-      siteId: z.string().uuid(),
-      title: z.string().min(3).max(200),
-      targetKeyword: z.string().min(2).max(120).optional(),
-    }).parse(i),
+    orgScoped
+      .extend({
+        siteId: z.string().uuid(),
+        title: z.string().min(3).max(200),
+        targetKeyword: z.string().min(2).max(120).optional(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -127,20 +148,29 @@ export const generateContentBrief = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw error;
-    await enqueue(supabase, data.organizationId, userId, "brief_generate", {
-      briefId: brief.id,
-    }, data.siteId);
+    await enqueue(
+      supabase,
+      data.organizationId,
+      userId,
+      "brief_generate",
+      {
+        briefId: brief.id,
+      },
+      data.siteId,
+    );
     return { briefId: brief.id };
   });
 
 export const requestPublishApproval = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    orgScoped.extend({
-      siteId: z.string().uuid(),
-      briefId: z.string().uuid().optional(),
-      draftPayload: z.record(z.string(), z.any()),
-    }).parse(i),
+    orgScoped
+      .extend({
+        siteId: z.string().uuid(),
+        briefId: z.string().uuid().optional(),
+        draftPayload: z.record(z.string(), z.any()),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
@@ -184,17 +214,27 @@ export const importGa4Data = createServerFn({ method: "POST" })
 export const runAiVisibilityTest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    orgScoped.extend({
-      siteId: z.string().uuid(),
-      query: z.string().min(2).max(500),
-      engine: z.enum(["google_aio", "perplexity", "chatgpt", "claude"]),
-    }).parse(i),
+    orgScoped
+      .extend({
+        siteId: z.string().uuid(),
+        query: z.string().min(2).max(500),
+        engine: z.enum(["google_aio", "perplexity", "chatgpt", "claude"]),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertMember(supabase, userId, data.organizationId);
-    const job = await enqueue(supabase, data.organizationId, userId, "ai_visibility", {
-      query: data.query, engine: data.engine,
-    }, data.siteId);
+    const job = await enqueue(
+      supabase,
+      data.organizationId,
+      userId,
+      "ai_visibility",
+      {
+        query: data.query,
+        engine: data.engine,
+      },
+      data.siteId,
+    );
     return { jobId: job.id };
   });
