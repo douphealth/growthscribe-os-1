@@ -1,10 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Json } from "@/integrations/supabase/types";
+import type { Json, Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SB = any;
+type SB = SupabaseClient<Database>;
 type EncryptedSecret = {
   v: 1;
   alg: "AES-GCM";
