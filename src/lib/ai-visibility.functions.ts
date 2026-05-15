@@ -252,9 +252,9 @@ Content (truncated): ${((post.content_text ?? post.content_html) ?? "").slice(0,
     }
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json.choices?.[0]?.message?.content ?? "{}";
-    let parsed: unknown;
+    let parsed: Json;
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(raw) as Json;
     } catch {
       throw new Error("Model returned invalid JSON");
     }
