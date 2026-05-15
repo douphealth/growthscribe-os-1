@@ -4,12 +4,7 @@ import { parse as parseHtml } from "node-html-parser";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database, Json } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  getWpConnection,
-  fetchWpPost,
-  updateWpPost,
-  type WpPostChange,
-} from "./wordpress.server";
+import { getWpConnection, fetchWpPost, updateWpPost, type WpPostChange } from "./wordpress.server";
 
 type SB = SupabaseClient<Database>;
 
@@ -95,7 +90,8 @@ export function auditHtml(html: string, pageUrl: string | null): PageAudit {
       for (const x of arr) {
         const t = (x as { "@type"?: unknown })["@type"];
         if (typeof t === "string") jsonLdTypes.push(t);
-        else if (Array.isArray(t)) jsonLdTypes.push(...t.filter((y): y is string => typeof y === "string"));
+        else if (Array.isArray(t))
+          jsonLdTypes.push(...t.filter((y): y is string => typeof y === "string"));
       }
     } catch {
       /* ignore malformed JSON-LD */
@@ -264,7 +260,10 @@ type PsiResult = {
   ttfb: number | null;
 };
 
-export async function runPageSpeed(url: string, strategy: "mobile" | "desktop"): Promise<PsiResult> {
+export async function runPageSpeed(
+  url: string,
+  strategy: "mobile" | "desktop",
+): Promise<PsiResult> {
   const apiKey = process.env.PAGESPEED_API_KEY;
   const params = new URLSearchParams({ url, strategy, category: "performance" });
   if (apiKey) params.set("key", apiKey);
@@ -423,7 +422,10 @@ export const runTechnicalScan = createServerFn({ method: "POST" })
       scanned++;
     }
 
-    const psiTargets = posts.slice(0, 3).map((p) => p.url).filter(Boolean) as string[];
+    const psiTargets = posts
+      .slice(0, 3)
+      .map((p) => p.url)
+      .filter(Boolean) as string[];
     for (const url of psiTargets) {
       for (const strategy of ["mobile", "desktop"] as const) {
         const psi = await runPageSpeed(url, strategy);
@@ -669,11 +671,7 @@ export const requestWordpressFix = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     await assertMember(supabase, userId, data.organizationId);
-    const preview = await buildFixPreview(
-      supabase,
-      data.organizationId,
-      data.recommendationId,
-    );
+    const preview = await buildFixPreview(supabase, data.organizationId, data.recommendationId);
 
     const draft = {
       postType: preview.postType,
@@ -822,10 +820,7 @@ export const bulkApplyWordpressFixes = createServerFn({ method: "POST" })
         if (preview.field === "excerpt") changes.excerpt = preview.after;
         if (preview.field === "content") changes.content = preview.after;
         await updateWpPost(conn, preview.postType, preview.wpPostId, changes);
-        await supabase
-          .from("content_recommendations")
-          .update({ status: "done" })
-          .eq("id", rec.id);
+        await supabase.from("content_recommendations").update({ status: "done" }).eq("id", rec.id);
         applied++;
         // gentle rate limit so we never hammer wp-json
         await new Promise((r) => setTimeout(r, 350));

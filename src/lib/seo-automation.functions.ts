@@ -4,11 +4,7 @@ import { parse as parseHtml } from "node-html-parser";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json, Database } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  getWpConnection,
-  fetchWpPost,
-  updateWpPost,
-} from "./wordpress.server";
+import { getWpConnection, fetchWpPost, updateWpPost } from "./wordpress.server";
 
 type SB = SupabaseClient<Database>;
 
@@ -29,10 +25,61 @@ const orgSite = z.object({
 });
 
 const STOPWORDS = new Set([
-  "the","and","for","with","that","this","from","your","you","are","but","not","have","has","was",
-  "were","will","into","over","under","when","what","which","while","they","them","their","there",
-  "these","those","about","also","more","than","then","just","only","very","some","any","all",
-  "our","out","off","one","two","new","get","can","its","it's","how","why","who","where",
+  "the",
+  "and",
+  "for",
+  "with",
+  "that",
+  "this",
+  "from",
+  "your",
+  "you",
+  "are",
+  "but",
+  "not",
+  "have",
+  "has",
+  "was",
+  "were",
+  "will",
+  "into",
+  "over",
+  "under",
+  "when",
+  "what",
+  "which",
+  "while",
+  "they",
+  "them",
+  "their",
+  "there",
+  "these",
+  "those",
+  "about",
+  "also",
+  "more",
+  "than",
+  "then",
+  "just",
+  "only",
+  "very",
+  "some",
+  "any",
+  "all",
+  "our",
+  "out",
+  "off",
+  "one",
+  "two",
+  "new",
+  "get",
+  "can",
+  "its",
+  "it's",
+  "how",
+  "why",
+  "who",
+  "where",
 ]);
 
 function tokenize(s: string): string[] {
@@ -292,9 +339,7 @@ export const scanImageAlts = createServerFn({ method: "POST" })
       });
     }
     if (findings.length > 0) {
-      const { error: insErr } = await supabase
-        .from("content_recommendations")
-        .insert(findings);
+      const { error: insErr } = await supabase.from("content_recommendations").insert(findings);
       if (insErr) throw insErr;
     }
     return { posts: posts?.length ?? 0, missing: totalMissing, findings: findings.length };
@@ -336,36 +381,26 @@ export const bulkApplyImageAlts = createServerFn({ method: "POST" })
         if (!post?.content_html) continue;
         const fallback = post.title ?? "Image";
         let count = 0;
-        const next = post.content_html.replace(
-          /<img\b([^>]*)>/gi,
-          (full, attrs: string) => {
-            if (/\balt\s*=\s*("[^"]*"|'[^']*')/i.test(attrs)) {
-              // Replace empty alt with derived value.
-              return full.replace(
-                /\balt\s*=\s*("\s*"|'\s*')/i,
-                () => {
-                  const srcMatch = attrs.match(/\bsrc\s*=\s*"([^"]+)"|\bsrc\s*=\s*'([^']+)'/i);
-                  const src = srcMatch ? srcMatch[1] ?? srcMatch[2] ?? "" : "";
-                  const alt = deriveAltFromSrc(src, fallback)
-                    .replace(/"/g, "&quot;");
-                  count++;
-                  return `alt="${alt}"`;
-                },
-              );
-            }
-            const srcMatch = attrs.match(/\bsrc\s*=\s*"([^"]+)"|\bsrc\s*=\s*'([^']+)'/i);
-            const src = srcMatch ? srcMatch[1] ?? srcMatch[2] ?? "" : "";
-            const alt = deriveAltFromSrc(src, fallback).replace(/"/g, "&quot;");
-            count++;
-            return `<img${attrs} alt="${alt}">`;
-          },
-        );
+        const next = post.content_html.replace(/<img\b([^>]*)>/gi, (full, attrs: string) => {
+          if (/\balt\s*=\s*("[^"]*"|'[^']*')/i.test(attrs)) {
+            // Replace empty alt with derived value.
+            return full.replace(/\balt\s*=\s*("\s*"|'\s*')/i, () => {
+              const srcMatch = attrs.match(/\bsrc\s*=\s*"([^"]+)"|\bsrc\s*=\s*'([^']+)'/i);
+              const src = srcMatch ? (srcMatch[1] ?? srcMatch[2] ?? "") : "";
+              const alt = deriveAltFromSrc(src, fallback).replace(/"/g, "&quot;");
+              count++;
+              return `alt="${alt}"`;
+            });
+          }
+          const srcMatch = attrs.match(/\bsrc\s*=\s*"([^"]+)"|\bsrc\s*=\s*'([^']+)'/i);
+          const src = srcMatch ? (srcMatch[1] ?? srcMatch[2] ?? "") : "";
+          const alt = deriveAltFromSrc(src, fallback).replace(/"/g, "&quot;");
+          count++;
+          return `<img${attrs} alt="${alt}">`;
+        });
         if (count === 0) continue;
         await updateWpPost(conn, post.post_type, post.wp_post_id, { content: next });
-        await supabase
-          .from("content_recommendations")
-          .update({ status: "done" })
-          .eq("id", rec.id);
+        await supabase.from("content_recommendations").update({ status: "done" }).eq("id", rec.id);
         applied++;
         altsWritten += count;
         await new Promise((r) => setTimeout(r, 300));

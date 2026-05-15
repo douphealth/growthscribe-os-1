@@ -82,7 +82,10 @@ async function runTechnicalScanJob(
     scanned++;
   }
 
-  const psiTargets = posts.slice(0, 3).map((p) => p.url).filter(Boolean) as string[];
+  const psiTargets = posts
+    .slice(0, 3)
+    .map((p) => p.url)
+    .filter(Boolean) as string[];
   for (const url of psiTargets) {
     for (const strategy of ["mobile", "desktop"] as const) {
       const psi = await runPageSpeed(url, strategy);
@@ -223,10 +226,10 @@ export const Route = createFileRoute("/api/public/cron/worker")({
           }
         }
 
-        return new Response(
-          JSON.stringify({ ok: true, processed: results.length, results }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       },
     },
   },

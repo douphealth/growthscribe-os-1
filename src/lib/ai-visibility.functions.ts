@@ -91,7 +91,10 @@ const runInput = z.object({
   organizationId: z.string().uuid(),
   siteId: z.string().uuid(),
   queries: z.array(z.string().trim().min(2).max(300)).min(1).max(10),
-  engines: z.array(z.enum(ENGINES)).min(1).default([...ENGINES]),
+  engines: z
+    .array(z.enum(ENGINES))
+    .min(1)
+    .default([...ENGINES]),
 });
 
 export const runAiVisibilityTests = createServerFn({ method: "POST" })
@@ -214,7 +217,9 @@ export const generateSchema = createServerFn({ method: "POST" })
     await assertMember(supabase, userId, data.organizationId);
     const { data: post, error } = await supabase
       .from("wordpress_posts")
-      .select("id, site_id, title, url, excerpt, content_text, content_html, published_at, modified_at, author")
+      .select(
+        "id, site_id, title, url, excerpt, content_text, content_html, published_at, modified_at, author",
+      )
       .eq("id", data.postId)
       .eq("site_id", data.siteId)
       .maybeSingle();
@@ -232,7 +237,7 @@ Author: ${post.author ?? ""}
 Published: ${post.published_at ?? ""}
 Modified: ${post.modified_at ?? ""}
 Excerpt: ${post.excerpt ?? ""}
-Content (truncated): ${((post.content_text ?? post.content_html) ?? "").slice(0, 4000)}`;
+Content (truncated): ${(post.content_text ?? post.content_html ?? "").slice(0, 4000)}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -258,5 +263,8 @@ Content (truncated): ${((post.content_text ?? post.content_html) ?? "").slice(0,
     } catch {
       throw new Error("Model returned invalid JSON");
     }
-    return { schema: parsed, scriptTag: `<script type="application/ld+json">${JSON.stringify(parsed)}</script>` };
+    return {
+      schema: parsed,
+      scriptTag: `<script type="application/ld+json">${JSON.stringify(parsed)}</script>`,
+    };
   });

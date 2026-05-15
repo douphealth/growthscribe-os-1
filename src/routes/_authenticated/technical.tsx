@@ -174,7 +174,7 @@ function TechnicalPage() {
       const res = await scan({ data: { organizationId: orgId, siteId, limit: 20 } });
       toast.success(
         res.scanned === 0
-          ? res.message ?? "Nothing to scan"
+          ? (res.message ?? "Nothing to scan")
           : `Scanned ${res.scanned} pages · ${res.findings} findings`,
         { id: t },
       );
@@ -247,10 +247,7 @@ function TechnicalPage() {
     const t = toast.loading("Scanning images for missing alt text…");
     try {
       const res = await scanAlts({ data: { organizationId: orgId, siteId, limit: 25 } });
-      toast.success(
-        `${res.missing} missing alts across ${res.findings} posts`,
-        { id: t },
-      );
+      toast.success(`${res.missing} missing alts across ${res.findings} posts`, { id: t });
       qc.invalidateQueries({ queryKey: ["technical-recs", orgId, siteId] });
     } catch (e) {
       toast.error((e as Error).message, { id: t });
@@ -303,10 +300,9 @@ function TechnicalPage() {
       const res = await bulkApply({
         data: { organizationId: orgId, siteId, category, limit: 25 },
       });
-      toast.success(
-        `Applied ${res.applied}${res.failed ? ` · ${res.failed} failed` : ""}`,
-        { id: t },
-      );
+      toast.success(`Applied ${res.applied}${res.failed ? ` · ${res.failed} failed` : ""}`, {
+        id: t,
+      });
       qc.invalidateQueries({ queryKey: ["technical-recs", orgId, siteId] });
     } catch (e) {
       toast.error((e as Error).message, { id: t });
@@ -361,8 +357,8 @@ function TechnicalPage() {
               <Wand2 className="h-4 w-4" /> SEO automation
             </CardTitle>
             <CardDescription>
-              Internal-link discovery and image alt repair. Suggestions land in the
-              Approvals queue or apply in bulk after a scan.
+              Internal-link discovery and image alt repair. Suggestions land in the Approvals queue
+              or apply in bulk after a scan.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -384,13 +380,10 @@ function TechnicalPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Link2 className="h-4 w-4" /> Internal link opportunities
-              <span className="text-xs text-muted-foreground">
-                ({linksQ.data?.length})
-              </span>
+              <span className="text-xs text-muted-foreground">({linksQ.data?.length})</span>
             </CardTitle>
             <CardDescription>
-              Anchor inserts auto-detected from content overlap. Applies directly to
-              WordPress.
+              Anchor inserts auto-detected from content overlap. Applies directly to WordPress.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -470,9 +463,7 @@ function TechnicalPage() {
                         <Badge variant={severityVariant(r.severity)}>{r.severity}</Badge>
                         <p className="font-medium truncate">{r.title}</p>
                       </div>
-                      {r.detail && (
-                        <p className="text-sm text-muted-foreground">{r.detail}</p>
-                      )}
+                      {r.detail && <p className="text-sm text-muted-foreground">{r.detail}</p>}
                       {r.suggested_action && (
                         <p className="text-sm">
                           <span className="text-muted-foreground">Suggested: </span>
@@ -507,8 +498,8 @@ function TechnicalPage() {
               {previewing?.category.replace(/-/g, " ")} fix preview
             </DialogTitle>
             <DialogDescription>
-              Updates the <strong>{previewing?.field}</strong> on WP post #
-              {previewing?.wpPostId}. Review before applying.
+              Updates the <strong>{previewing?.field}</strong> on WP post #{previewing?.wpPostId}.
+              Review before applying.
             </DialogDescription>
           </DialogHeader>
           {previewing && (
@@ -522,9 +513,7 @@ function TechnicalPage() {
                 </pre>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                  After
-                </p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">After</p>
                 <pre className="text-xs bg-primary/5 rounded-md p-3 whitespace-pre-wrap break-words">
                   {previewing.after}
                 </pre>
