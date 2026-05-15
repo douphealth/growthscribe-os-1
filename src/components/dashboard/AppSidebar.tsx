@@ -17,6 +17,7 @@ import {
   Library,
   Lightbulb,
   Bot,
+  Wrench,
 } from "lucide-react";
 import {
   Sidebar,
@@ -61,6 +62,7 @@ const sections = [
       { title: "Content Briefs", url: "/briefs", icon: FileText },
       { title: "Tasks", url: "/tasks", icon: ListTodo },
       { title: "AI Visibility", url: "/ai-visibility", icon: Bot },
+      { title: "Technical SEO", url: "/technical", icon: Wrench },
     ],
   },
   {
