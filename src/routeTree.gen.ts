@@ -26,9 +26,11 @@ import { Route as AuthenticatedContentInventoryRouteImport } from './routes/_aut
 import { Route as AuthenticatedBriefsRouteImport } from './routes/_authenticated/briefs'
 import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
 import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authenticated/audit-logs'
+import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authenticated/approvals'
 import { Route as AuthenticatedAiVisibilityRouteImport } from './routes/_authenticated/ai-visibility'
 import { Route as ApiPublicCronWorkerRouteImport } from './routes/api/public/cron/worker'
 import { Route as ApiPublicCronScanRouteImport } from './routes/api/public/cron/scan'
+import { Route as ApiPublicCronGscPullRouteImport } from './routes/api/public/cron/gsc-pull'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -118,6 +120,11 @@ const AuthenticatedAuditLogsRoute = AuthenticatedAuditLogsRouteImport.update({
   path: '/audit-logs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedApprovalsRoute = AuthenticatedApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAiVisibilityRoute =
   AuthenticatedAiVisibilityRouteImport.update({
     id: '/ai-visibility',
@@ -134,12 +141,18 @@ const ApiPublicCronScanRoute = ApiPublicCronScanRouteImport.update({
   path: '/api/public/cron/scan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronGscPullRoute = ApiPublicCronGscPullRouteImport.update({
+  id: '/api/public/cron/gsc-pull',
+  path: '/api/public/cron/gsc-pull',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/audits': typeof AuthenticatedAuditsRoute
   '/briefs': typeof AuthenticatedBriefsRoute
@@ -153,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
 }
@@ -161,6 +175,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/audits': typeof AuthenticatedAuditsRoute
   '/briefs': typeof AuthenticatedBriefsRoute
@@ -174,6 +189,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksRoute
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
 }
@@ -184,6 +200,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_authenticated/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/_authenticated/approvals': typeof AuthenticatedApprovalsRoute
   '/_authenticated/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/_authenticated/audits': typeof AuthenticatedAuditsRoute
   '/_authenticated/briefs': typeof AuthenticatedBriefsRoute
@@ -197,6 +214,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/technical': typeof AuthenticatedTechnicalRoute
   '/_authenticated/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
 }
@@ -207,6 +225,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/ai-visibility'
+    | '/approvals'
     | '/audit-logs'
     | '/audits'
     | '/briefs'
@@ -220,6 +239,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/technical'
     | '/topical-maps'
+    | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
   fileRoutesByTo: FileRoutesByTo
@@ -228,6 +248,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/ai-visibility'
+    | '/approvals'
     | '/audit-logs'
     | '/audits'
     | '/briefs'
@@ -241,6 +262,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/technical'
     | '/topical-maps'
+    | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
   id:
@@ -250,6 +272,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_authenticated/ai-visibility'
+    | '/_authenticated/approvals'
     | '/_authenticated/audit-logs'
     | '/_authenticated/audits'
     | '/_authenticated/briefs'
@@ -263,6 +286,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/_authenticated/technical'
     | '/_authenticated/topical-maps'
+    | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
   fileRoutesById: FileRoutesById
@@ -272,6 +296,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  ApiPublicCronGscPullRoute: typeof ApiPublicCronGscPullRoute
   ApiPublicCronScanRoute: typeof ApiPublicCronScanRoute
   ApiPublicCronWorkerRoute: typeof ApiPublicCronWorkerRoute
 }
@@ -397,6 +422,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditLogsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/approvals': {
+      id: '/_authenticated/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof AuthenticatedApprovalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ai-visibility': {
       id: '/_authenticated/ai-visibility'
       path: '/ai-visibility'
@@ -418,11 +450,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronScanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/gsc-pull': {
+      id: '/api/public/cron/gsc-pull'
+      path: '/api/public/cron/gsc-pull'
+      fullPath: '/api/public/cron/gsc-pull'
+      preLoaderRoute: typeof ApiPublicCronGscPullRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAiVisibilityRoute: typeof AuthenticatedAiVisibilityRoute
+  AuthenticatedApprovalsRoute: typeof AuthenticatedApprovalsRoute
   AuthenticatedAuditLogsRoute: typeof AuthenticatedAuditLogsRoute
   AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
   AuthenticatedBriefsRoute: typeof AuthenticatedBriefsRoute
@@ -440,6 +480,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAiVisibilityRoute: AuthenticatedAiVisibilityRoute,
+  AuthenticatedApprovalsRoute: AuthenticatedApprovalsRoute,
   AuthenticatedAuditLogsRoute: AuthenticatedAuditLogsRoute,
   AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
   AuthenticatedBriefsRoute: AuthenticatedBriefsRoute,
@@ -463,6 +504,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  ApiPublicCronGscPullRoute: ApiPublicCronGscPullRoute,
   ApiPublicCronScanRoute: ApiPublicCronScanRoute,
   ApiPublicCronWorkerRoute: ApiPublicCronWorkerRoute,
 }
