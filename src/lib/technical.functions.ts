@@ -54,7 +54,7 @@ function originOf(url: string | null): string | null {
   }
 }
 
-function auditHtml(html: string, pageUrl: string | null): PageAudit {
+export function auditHtml(html: string, pageUrl: string | null): PageAudit {
   const root = parseHtml(html, { lowerCaseTagName: true });
   const titleEl = root.querySelector("title");
   const title = titleEl?.text?.trim() || null;
