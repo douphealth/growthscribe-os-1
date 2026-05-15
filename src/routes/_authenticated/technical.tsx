@@ -25,15 +25,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Gauge, Wand2, ExternalLink, ShieldCheck } from "lucide-react";
+import { Gauge, Wand2, ShieldCheck, CheckCircle2, Link2, Image as ImageIcon } from "lucide-react";
 import {
   runTechnicalScan,
   previewWordpressFix,
-  applyWordpressFix,
+  requestWordpressFix,
   submitIndexNow,
   bulkApplyWordpressFixes,
   type FixPreview,
 } from "@/lib/technical.functions";
+import {
+  discoverInternalLinks,
+  scanImageAlts,
+  bulkApplyImageAlts,
+} from "@/lib/seo-automation.functions";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
 type Rec = Database["public"]["Tables"]["content_recommendations"]["Row"];
@@ -67,9 +72,12 @@ function TechnicalPage() {
   const qc = useQueryClient();
   const scan = useServerFn(runTechnicalScan);
   const preview = useServerFn(previewWordpressFix);
-  const apply = useServerFn(applyWordpressFix);
+  const requestFix = useServerFn(requestWordpressFix);
   const indexNow = useServerFn(submitIndexNow);
   const bulkApply = useServerFn(bulkApplyWordpressFixes);
+  const discoverLinks = useServerFn(discoverInternalLinks);
+  const scanAlts = useServerFn(scanImageAlts);
+  const bulkAlts = useServerFn(bulkApplyImageAlts);
 
   const [siteId, setSiteId] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -167,19 +175,59 @@ function TechnicalPage() {
     }
   };
 
-  const onApply = async () => {
+  const onRequest = async () => {
     if (!previewing) return;
-    const t = toast.loading("Applying fix to WordPress…");
+    const t = toast.loading("Sending to approvals queue…");
     try {
-      await apply({
+      await requestFix({
         data: {
           organizationId: orgId!,
           siteId,
           recommendationId: previewing.recommendationId,
         },
       });
-      toast.success("Fix applied", { id: t });
+      toast.success("Submitted for review — open Approvals to apply", { id: t });
       setPreviewing(null);
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    }
+  };
+
+  const onDiscoverLinks = async () => {
+    if (!orgId || !siteId) return;
+    const t = toast.loading("Discovering internal link opportunities…");
+    try {
+      const res = await discoverLinks({ data: { organizationId: orgId, siteId, limit: 20 } });
+      toast.success(`Suggested ${res.suggested} links across ${res.scanned} posts`, { id: t });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    }
+  };
+
+  const onScanAlts = async () => {
+    if (!orgId || !siteId) return;
+    const t = toast.loading("Scanning images for missing alt text…");
+    try {
+      const res = await scanAlts({ data: { organizationId: orgId, siteId, limit: 25 } });
+      toast.success(
+        `${res.missing} missing alts across ${res.findings} posts`,
+        { id: t },
+      );
+      qc.invalidateQueries({ queryKey: ["technical-recs", orgId, siteId] });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    }
+  };
+
+  const onBulkAlts = async () => {
+    if (!orgId || !siteId) return;
+    const t = toast.loading("Writing alt text and pushing to WordPress…");
+    try {
+      const res = await bulkAlts({ data: { organizationId: orgId, siteId, limit: 10 } });
+      toast.success(
+        `Wrote ${res.altsWritten} alts across ${res.applied} posts${res.failed ? ` · ${res.failed} failed` : ""}`,
+        { id: t },
+      );
       qc.invalidateQueries({ queryKey: ["technical-recs", orgId, siteId] });
     } catch (e) {
       toast.error((e as Error).message, { id: t });
@@ -267,6 +315,31 @@ function TechnicalPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {siteId && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wand2 className="h-4 w-4" /> SEO automation
+            </CardTitle>
+            <CardDescription>
+              Internal-link discovery and image alt repair. Suggestions land in the
+              Approvals queue or apply in bulk after a scan.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={onDiscoverLinks}>
+              <Link2 className="mr-1 h-3 w-3" /> Discover internal links
+            </Button>
+            <Button variant="outline" size="sm" onClick={onScanAlts}>
+              <ImageIcon className="mr-1 h-3 w-3" /> Scan image alts
+            </Button>
+            <Button variant="secondary" size="sm" onClick={onBulkAlts}>
+              <Wand2 className="mr-1 h-3 w-3" /> Bulk-fix missing alts
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {!siteId ? (
         <EmptyState
@@ -377,8 +450,11 @@ function TechnicalPage() {
             <Button variant="ghost" onClick={() => setPreviewing(null)}>
               Cancel
             </Button>
-            <Button onClick={onApply}>
-              <ExternalLink className="mr-1 h-3 w-3" /> Apply to WordPress
+            <Button asChild variant="ghost">
+              <Link to="/approvals">Open Approvals</Link>
+            </Button>
+            <Button onClick={onRequest}>
+              <CheckCircle2 className="mr-1 h-3 w-3" /> Request approval
             </Button>
           </DialogFooter>
         </DialogContent>
