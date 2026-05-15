@@ -26,6 +26,7 @@ import { Route as AuthenticatedContentInventoryRouteImport } from './routes/_aut
 import { Route as AuthenticatedBriefsRouteImport } from './routes/_authenticated/briefs'
 import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated/audits'
 import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authenticated/audit-logs'
+import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authenticated/approvals'
 import { Route as AuthenticatedAiVisibilityRouteImport } from './routes/_authenticated/ai-visibility'
 import { Route as ApiPublicCronWorkerRouteImport } from './routes/api/public/cron/worker'
 import { Route as ApiPublicCronScanRouteImport } from './routes/api/public/cron/scan'
@@ -119,6 +120,11 @@ const AuthenticatedAuditLogsRoute = AuthenticatedAuditLogsRouteImport.update({
   path: '/audit-logs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedApprovalsRoute = AuthenticatedApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAiVisibilityRoute =
   AuthenticatedAiVisibilityRouteImport.update({
     id: '/ai-visibility',
@@ -146,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/audits': typeof AuthenticatedAuditsRoute
   '/briefs': typeof AuthenticatedBriefsRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/audits': typeof AuthenticatedAuditsRoute
   '/briefs': typeof AuthenticatedBriefsRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_authenticated/ai-visibility': typeof AuthenticatedAiVisibilityRoute
+  '/_authenticated/approvals': typeof AuthenticatedApprovalsRoute
   '/_authenticated/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/_authenticated/audits': typeof AuthenticatedAuditsRoute
   '/_authenticated/briefs': typeof AuthenticatedBriefsRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/ai-visibility'
+    | '/approvals'
     | '/audit-logs'
     | '/audits'
     | '/briefs'
@@ -238,6 +248,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/ai-visibility'
+    | '/approvals'
     | '/audit-logs'
     | '/audits'
     | '/briefs'
@@ -261,6 +272,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/_authenticated/ai-visibility'
+    | '/_authenticated/approvals'
     | '/_authenticated/audit-logs'
     | '/_authenticated/audits'
     | '/_authenticated/briefs'
@@ -410,6 +422,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditLogsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/approvals': {
+      id: '/_authenticated/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof AuthenticatedApprovalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ai-visibility': {
       id: '/_authenticated/ai-visibility'
       path: '/ai-visibility'
@@ -443,6 +462,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAiVisibilityRoute: typeof AuthenticatedAiVisibilityRoute
+  AuthenticatedApprovalsRoute: typeof AuthenticatedApprovalsRoute
   AuthenticatedAuditLogsRoute: typeof AuthenticatedAuditLogsRoute
   AuthenticatedAuditsRoute: typeof AuthenticatedAuditsRoute
   AuthenticatedBriefsRoute: typeof AuthenticatedBriefsRoute
@@ -460,6 +480,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAiVisibilityRoute: AuthenticatedAiVisibilityRoute,
+  AuthenticatedApprovalsRoute: AuthenticatedApprovalsRoute,
   AuthenticatedAuditLogsRoute: AuthenticatedAuditLogsRoute,
   AuthenticatedAuditsRoute: AuthenticatedAuditsRoute,
   AuthenticatedBriefsRoute: AuthenticatedBriefsRoute,
@@ -490,3 +511,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
