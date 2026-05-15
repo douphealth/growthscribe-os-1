@@ -59,8 +59,7 @@ function Page() {
   const listQ = useQuery({
     queryKey: ["aivt", orgId, effectiveSite],
     enabled: !!orgId && !!effectiveSite,
-    queryFn: () =>
-      listFn({ data: { organizationId: orgId!, siteId: effectiveSite, limit: 100 } }),
+    queryFn: () => listFn({ data: { organizationId: orgId!, siteId: effectiveSite, limit: 100 } }),
   });
 
   const coverage = useMemo(() => {
@@ -124,12 +123,25 @@ function Page() {
       />
 
       <div className="grid gap-4 md:grid-cols-3 mb-4">
-        <StatCard label="Coverage" value={`${coverage.pct}%`} sub={`${coverage.hits}/${coverage.total} mentions`} />
-        {(["gpt", "gemini", "perplexity"] as const).map((e) => {
-          const v = listQ.data?.byEngine?.[e] ?? { total: 0, hits: 0 };
-          const pct = v.total ? Math.round((v.hits / v.total) * 100) : 0;
-          return <StatCard key={e} label={ENGINE_LABEL[e]} value={`${pct}%`} sub={`${v.hits}/${v.total}`} />;
-        }).slice(0, 2)}
+        <StatCard
+          label="Coverage"
+          value={`${coverage.pct}%`}
+          sub={`${coverage.hits}/${coverage.total} mentions`}
+        />
+        {(["gpt", "gemini", "perplexity"] as const)
+          .map((e) => {
+            const v = listQ.data?.byEngine?.[e] ?? { total: 0, hits: 0 };
+            const pct = v.total ? Math.round((v.hits / v.total) * 100) : 0;
+            return (
+              <StatCard
+                key={e}
+                label={ENGINE_LABEL[e]}
+                value={`${pct}%`}
+                sub={`${v.hits}/${v.total}`}
+              />
+            );
+          })
+          .slice(0, 2)}
       </div>
 
       <Card className="mb-6">
@@ -188,7 +200,9 @@ function Page() {
                       Mentioned{r.rank ? ` · #${r.rank}` : ""}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-muted-foreground">Not mentioned</Badge>
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Not mentioned
+                    </Badge>
                   )}
                   {r.citation_url && (
                     <a

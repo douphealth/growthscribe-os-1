@@ -39,27 +39,30 @@ async function pullOne(
   let total = 0;
   let startRow = 0;
   while (true) {
-    const res = await fetch(
-      `${GSC_GATEWAY}/webmasters/v3/sites/${encoded}/searchAnalytics/query`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovable}`,
-          "X-Connection-Api-Key": gsc,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          startDate: ymd(start),
-          endDate: ymd(end),
-          dimensions: ["date", "query", "page"],
-          rowLimit: ROW_LIMIT,
-          startRow,
-        }),
+    const res = await fetch(`${GSC_GATEWAY}/webmasters/v3/sites/${encoded}/searchAnalytics/query`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovable}`,
+        "X-Connection-Api-Key": gsc,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        startDate: ymd(start),
+        endDate: ymd(end),
+        dimensions: ["date", "query", "page"],
+        rowLimit: ROW_LIMIT,
+        startRow,
+      }),
+    });
     if (!res.ok) throw new Error(`GSC ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const json = (await res.json()) as {
-      rows?: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }[];
+      rows?: {
+        keys: string[];
+        clicks: number;
+        impressions: number;
+        ctr: number;
+        position: number;
+      }[];
     };
     const rows = json.rows ?? [];
     if (rows.length === 0) break;
@@ -75,9 +78,7 @@ async function pullOne(
       position: r.position ?? null,
     }));
     for (let i = 0; i < inserts.length; i += 500) {
-      const { error } = await admin
-        .from("search_console_daily")
-        .insert(inserts.slice(i, i + 500));
+      const { error } = await admin.from("search_console_daily").insert(inserts.slice(i, i + 500));
       if (error) throw error;
     }
     total += rows.length;

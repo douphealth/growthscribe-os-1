@@ -3,12 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json, Database } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  getWpConnection,
-  fetchWpPost,
-  updateWpPost,
-  type WpPostChange,
-} from "./wordpress.server";
+import { getWpConnection, fetchWpPost, updateWpPost, type WpPostChange } from "./wordpress.server";
 
 type SB = SupabaseClient<Database>;
 
@@ -49,7 +44,9 @@ export const listApprovalRequests = createServerFn({ method: "POST" })
     await assertMember(supabase, userId, data.organizationId);
     let q = supabase
       .from("approval_requests")
-      .select("id, status, draft_payload, decision_note, created_at, decided_at, requested_by, reviewer_id, site_id, brief_id")
+      .select(
+        "id, status, draft_payload, decision_note, created_at, decided_at, requested_by, reviewer_id, site_id, brief_id",
+      )
       .eq("organization_id", data.organizationId)
       .order("created_at", { ascending: false })
       .limit(100);

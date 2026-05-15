@@ -9,12 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Check, X, Inbox } from "lucide-react";
 import {
   listApprovalRequests,
@@ -91,7 +86,9 @@ function Page() {
         </TabsList>
         <TabsContent value={tab} className="space-y-4 mt-4">
           {q.isLoading ? (
-            <Card><CardContent className="p-8 text-sm text-muted-foreground">Loading…</CardContent></Card>
+            <Card>
+              <CardContent className="p-8 text-sm text-muted-foreground">Loading…</CardContent>
+            </Card>
           ) : counts.items.length === 0 ? (
             <EmptyState
               icon={Inbox}
@@ -107,28 +104,41 @@ function Page() {
                   <CardHeader className="flex flex-row items-center justify-between gap-2">
                     <div className="flex flex-col">
                       <CardTitle className="text-sm font-medium">
-                        {draft.category ?? "change"} · {draft.field ?? "field"} · WP #{draft.wpPostId ?? "?"}
+                        {draft.category ?? "change"} · {draft.field ?? "field"} · WP #
+                        {draft.wpPostId ?? "?"}
                       </CardTitle>
                       <span className="text-[11px] text-muted-foreground">
                         {new Date(row.created_at).toLocaleString()}
                       </span>
                     </div>
-                    <Badge variant={row.status === "pending" ? "secondary" : row.status === "approved" ? "default" : "destructive"}>
+                    <Badge
+                      variant={
+                        row.status === "pending"
+                          ? "secondary"
+                          : row.status === "approved"
+                            ? "default"
+                            : "destructive"
+                      }
+                    >
                       {row.status}
                     </Badge>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Before</p>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                          Before
+                        </p>
                         <pre className="rounded-md border bg-muted/30 p-2 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto">
-{d.before.join("\n") || "(empty)"}
+                          {d.before.join("\n") || "(empty)"}
                         </pre>
                       </div>
                       <div>
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">After</p>
+                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+                          After
+                        </p>
                         <pre className="rounded-md border bg-primary/5 p-2 text-xs whitespace-pre-wrap break-words max-h-64 overflow-auto">
-{d.after.join("\n") || "(empty)"}
+                          {d.after.join("\n") || "(empty)"}
                         </pre>
                       </div>
                     </div>
