@@ -26,10 +26,14 @@ if (!token) {
   const snapshot = readFileSync(SNAPSHOT_PATH, "utf8").trim();
   if (committed !== snapshot) {
     console.error("✖ Drift detected between types.ts and types.snapshot.ts.");
-    console.error("Run `bun run db:types` to restore types.ts from the committed snapshot, or set SUPABASE_ACCESS_TOKEN to verify against the live schema.");
+    console.error(
+      "Run `bun run db:types` to restore types.ts from the committed snapshot, or set SUPABASE_ACCESS_TOKEN to verify against the live schema.",
+    );
     process.exit(1);
   }
-  console.log("✓ types.ts matches types.snapshot.ts (set SUPABASE_ACCESS_TOKEN to verify live schema drift).");
+  console.log(
+    "✓ types.ts matches types.snapshot.ts (set SUPABASE_ACCESS_TOKEN to verify live schema drift).",
+  );
   process.exit(0);
 }
 
