@@ -70,7 +70,7 @@ function Landing() {
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
-      <header className="border-b border-border/60 bg-background/80 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-border/60 glass sticky top-0 z-50">
         <div className="mx-auto max-w-7xl flex h-16 items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -104,23 +104,28 @@ function Landing() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--color-primary)_0%,_transparent_55%)] opacity-[0.08]" />
-        <div className="mx-auto max-w-6xl px-6 py-24 md:py-32 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground mb-6">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        <div className="absolute inset-0 -z-10 bg-mesh opacity-90" />
+        <div className="absolute inset-0 -z-10 bg-grid" />
+        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/70 px-3 py-1 text-xs text-muted-foreground mb-6 shadow-[var(--shadow-card)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             For WordPress publishers, affiliate marketers & SEO teams
           </div>
-          <h1 className="text-4xl md:text-6xl font-semibold tracking-tight text-foreground max-w-4xl mx-auto leading-[1.05]">
+          <h1 className="text-5xl md:text-7xl font-semibold tracking-tight text-foreground max-w-4xl mx-auto leading-[1.02]">
             The AI growth command center for{" "}
-            <span className="text-primary">organic publishers</span>.
+            <span className="text-gradient">organic publishers</span>.
           </h1>
-          <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Rank, earn, and grow without mass-publishing low-quality AI content. GrowthScribe OS
             turns GSC, GA4, and your WordPress library into prioritized growth actions — with human
             approval before anything ships.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button asChild size="lg" className="gap-2">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2 shadow-[var(--shadow-glow)] hover:shadow-[var(--shadow-glow)] hover:-translate-y-0.5 transition-all"
+            >
               <Link to="/signup">
                 Start free <ArrowRight className="h-4 w-4" />
               </Link>
@@ -131,13 +136,13 @@ function Landing() {
           </div>
           <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-accent" /> Approval-based WordPress publishing
+              <Check className="h-3.5 w-3.5 text-primary" /> Approval-based WordPress publishing
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-accent" /> Role-based access
+              <Check className="h-3.5 w-3.5 text-primary" /> Role-based access
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-accent" /> SOC-style audit logs
+              <Check className="h-3.5 w-3.5 text-primary" /> SOC-style audit logs
             </span>
           </div>
         </div>
@@ -156,17 +161,17 @@ function Landing() {
               approve, ship.
             </p>
           </div>
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f) => (
               <div
                 key={f.title}
-                className="rounded-xl border border-border/60 bg-card p-6 hover:border-primary/40 transition"
+                className="group rounded-2xl border border-border/60 bg-card p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elegant)] hover:border-primary/40 hover:-translate-y-0.5 transition-all"
               >
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary mb-4">
+                <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary mb-4 ring-1 ring-primary/10 group-hover:ring-primary/30 transition">
                   <f.icon className="h-5 w-5" />
                 </div>
-                <h3 className="font-semibold">{f.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
+                <h3 className="font-semibold tracking-tight">{f.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -203,10 +208,13 @@ function Landing() {
                 d: "Editor approves; draft lands in WordPress — never auto-published.",
               },
             ].map((s) => (
-              <div key={s.n} className="rounded-xl border border-border/60 bg-card p-6">
-                <div className="text-xs font-mono text-primary">{s.n}</div>
-                <h3 className="mt-2 font-semibold">{s.t}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.d}</p>
+              <div
+                key={s.n}
+                className="relative rounded-2xl border border-border/60 bg-card p-6 shadow-[var(--shadow-card)]"
+              >
+                <div className="text-xs font-mono text-primary tracking-widest">{s.n}</div>
+                <h3 className="mt-2 font-semibold tracking-tight">{s.t}</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.d}</p>
               </div>
             ))}
           </div>
@@ -233,24 +241,36 @@ function Landing() {
               d: "Run audits, briefs, and approvals from one workspace with audit logs.",
             },
           ].map((c) => (
-            <div key={c.t} className="rounded-xl border border-border/60 bg-card p-6">
-              <c.icon className="h-6 w-6 text-primary mb-4" />
-              <h3 className="font-semibold">{c.t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{c.d}</p>
+            <div
+              key={c.t}
+              className="rounded-2xl border border-border/60 bg-card p-6 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elegant)] transition-all"
+            >
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary ring-1 ring-primary/10 mb-4">
+                <c.icon className="h-5 w-5" />
+              </div>
+              <h3 className="font-semibold tracking-tight">{c.t}</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{c.d}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="border-t border-border/60">
-        <div className="mx-auto max-w-4xl px-6 py-24 text-center">
-          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight">
-            Stop guessing. Start compounding.
+      <section className="border-t border-border/60 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-mesh opacity-80" />
+        <div className="mx-auto max-w-4xl px-6 py-28 text-center">
+          <h2 className="text-4xl md:text-5xl font-semibold tracking-tight">
+            Stop guessing. <span className="text-gradient">Start compounding.</span>
           </h2>
-          <p className="mt-4 text-muted-foreground">Set up your workspace in under 10 minutes.</p>
+          <p className="mt-4 text-muted-foreground text-lg">
+            Set up your workspace in under 10 minutes.
+          </p>
           <div className="mt-8">
-            <Button asChild size="lg" className="gap-2">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2 shadow-[var(--shadow-glow)] hover:-translate-y-0.5 transition-all"
+            >
               <Link to="/signup">
                 Create your workspace <ArrowRight className="h-4 w-4" />
               </Link>
