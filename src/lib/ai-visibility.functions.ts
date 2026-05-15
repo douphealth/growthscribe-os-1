@@ -214,7 +214,7 @@ export const generateSchema = createServerFn({ method: "POST" })
     await assertMember(supabase, userId, data.organizationId);
     const { data: post, error } = await supabase
       .from("wordpress_posts")
-      .select("id, site_id, title, link, excerpt, content, published_at, modified_at, author_name")
+      .select("id, site_id, title, url, excerpt, content_text, content_html, published_at, modified_at, author")
       .eq("id", data.postId)
       .eq("site_id", data.siteId)
       .maybeSingle();
@@ -226,13 +226,13 @@ export const generateSchema = createServerFn({ method: "POST" })
 
     const sys = `You output ONLY valid JSON-LD schema.org markup as a JSON object (no prose, no code fences). Use https://schema.org context. Keep claims grounded in the provided content.`;
     const user = `Generate a ${data.schemaType} JSON-LD object for this page.
-URL: ${post.link ?? ""}
+URL: ${post.url ?? ""}
 Title: ${post.title ?? ""}
-Author: ${post.author_name ?? ""}
+Author: ${post.author ?? ""}
 Published: ${post.published_at ?? ""}
 Modified: ${post.modified_at ?? ""}
 Excerpt: ${post.excerpt ?? ""}
-Content (truncated): ${(post.content ?? "").slice(0, 4000)}`;
+Content (truncated): ${((post.content_text ?? post.content_html) ?? "").slice(0, 4000)}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
