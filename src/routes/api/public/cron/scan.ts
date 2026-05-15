@@ -25,8 +25,8 @@ export const Route = createFileRoute("/api/public/cron/scan")({
         });
         const { data: sites, error } = await admin
           .from("sites")
-          .select("id, organization_id, owner_id, name")
-          .eq("status", "active");
+          .select("id, organization_id, owner_id, name, status")
+          .in("status", ["connected", "sync_running"]);
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), { status: 500 });
         }
