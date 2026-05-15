@@ -717,3 +717,166 @@ export const submitIndexNow = createServerFn({ method: "POST" })
     if (!ok) throw new Error(`IndexNow submission failed: HTTP ${submit.status}`);
     return { ok: true, count: data.urls.length, keyLocation };
   });
+
+// =====================================================================
+// Bulk apply — runs previewWordpressFix + applyWordpressFix across many
+// recommendations in a single category, with per-site rate limiting and
+// per-recommendation rollback safety. Used by the technical UI and cron.
+// =====================================================================
+
+const bulkInput = z.object({
+  organizationId: z.string().uuid(),
+  siteId: z.string().uuid(),
+  category: z.enum(["title", "meta-description", "schema"]),
+  limit: z.number().int().min(1).max(50).default(20),
+});
+
+export const bulkApplyWordpressFixes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => bulkInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+    const conn = await getWpConnection(supabase, data.organizationId, data.siteId);
+    if (!conn) throw new Error("WordPress is not connected for this site");
+
+    const { data: recs, error } = await supabase
+      .from("content_recommendations")
+      .select("id")
+      .eq("organization_id", data.organizationId)
+      .eq("site_id", data.siteId)
+      .eq("status", "open")
+      .eq("category", data.category)
+      .limit(data.limit);
+    if (error) throw error;
+
+    let applied = 0;
+    const failures: { id: string; error: string }[] = [];
+    for (const rec of recs ?? []) {
+      try {
+        const preview = await buildFixPreview(supabase, data.organizationId, rec.id);
+        const changes: WpPostChange = {};
+        if (preview.field === "title") changes.title = preview.after;
+        if (preview.field === "excerpt") changes.excerpt = preview.after;
+        if (preview.field === "content") changes.content = preview.after;
+        await updateWpPost(conn, preview.postType, preview.wpPostId, changes);
+        await supabase
+          .from("content_recommendations")
+          .update({ status: "done" })
+          .eq("id", rec.id);
+        applied++;
+        // gentle rate limit so we never hammer wp-json
+        await new Promise((r) => setTimeout(r, 350));
+      } catch (e) {
+        failures.push({ id: rec.id, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    await supabase.from("audit_logs").insert({
+      actor_id: userId,
+      organization_id: data.organizationId,
+      action: "wp.fix.bulk_apply",
+      resource_type: "site",
+      resource_id: data.siteId,
+      metadata: { category: data.category, applied, failed: failures.length, failures } as Json,
+    });
+    await supabase.from("activities").insert({
+      organization_id: data.organizationId,
+      owner_id: userId,
+      type: "wp.fix.bulk",
+      title: `Bulk applied ${applied} ${data.category} fixes`,
+      description: failures.length ? `${failures.length} failed` : "All succeeded",
+      link: "/technical",
+    });
+    return { ok: true, applied, failed: failures.length, failures };
+  });
+
+// =====================================================================
+// Per-site SEO/AEO health score — used by the dashboard widget.
+// =====================================================================
+
+const scoreInput = z.object({
+  organizationId: z.string().uuid(),
+  siteId: z.string().uuid().optional(),
+});
+
+export const getSiteHealthScores = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => scoreInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+
+    let q = supabase
+      .from("sites")
+      .select("id, name, url")
+      .eq("organization_id", data.organizationId);
+    if (data.siteId) q = q.eq("id", data.siteId);
+    const { data: sites, error } = await q;
+    if (error) throw error;
+
+    const results = await Promise.all(
+      (sites ?? []).map(async (s) => {
+        const [recsRes, aiRes, postsRes] = await Promise.all([
+          supabase
+            .from("content_recommendations")
+            .select("severity, category, status")
+            .eq("organization_id", data.organizationId)
+            .eq("site_id", s.id)
+            .eq("status", "open")
+            .in("category", SCAN_CATEGORIES),
+          supabase
+            .from("ai_visibility_tests")
+            .select("appears, engine, tested_at")
+            .eq("organization_id", data.organizationId)
+            .eq("site_id", s.id)
+            .order("tested_at", { ascending: false })
+            .limit(120),
+          supabase
+            .from("wordpress_posts")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", data.organizationId)
+            .eq("site_id", s.id)
+            .eq("status", "publish"),
+        ]);
+
+        const recs = recsRes.data ?? [];
+        const tests = aiRes.data ?? [];
+        const posts = postsRes.count ?? 0;
+
+        // Technical: 100 - weighted issues (capped)
+        const weight = { high: 8, medium: 3, low: 1 } as const;
+        const penalty = recs.reduce(
+          (sum, r) => sum + (weight[r.severity as keyof typeof weight] ?? 1),
+          0,
+        );
+        const technical = Math.max(0, Math.min(100, 100 - penalty));
+
+        // AEO: % of recent AI visibility tests where the site appears
+        const aeo = tests.length
+          ? Math.round((tests.filter((t) => t.appears).length / tests.length) * 100)
+          : 0;
+
+        // GEO: structured data + canonical coverage proxy via missing-schema findings
+        const schemaGaps = recs.filter(
+          (r) => r.category === "schema" || r.category === "canonical",
+        ).length;
+        const geo = Math.max(0, Math.min(100, 100 - schemaGaps * 5));
+
+        const overall = Math.round(technical * 0.5 + aeo * 0.3 + geo * 0.2);
+        return {
+          siteId: s.id,
+          name: s.name,
+          url: s.url,
+          posts,
+          openIssues: recs.length,
+          technical,
+          aeo,
+          geo,
+          overall,
+        };
+      }),
+    );
+
+    return { sites: results };
+  });

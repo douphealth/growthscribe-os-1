@@ -31,6 +31,7 @@ import {
   previewWordpressFix,
   applyWordpressFix,
   submitIndexNow,
+  bulkApplyWordpressFixes,
   type FixPreview,
 } from "@/lib/technical.functions";
 
@@ -68,6 +69,7 @@ function TechnicalPage() {
   const preview = useServerFn(previewWordpressFix);
   const apply = useServerFn(applyWordpressFix);
   const indexNow = useServerFn(submitIndexNow);
+  const bulkApply = useServerFn(bulkApplyWordpressFixes);
 
   const [siteId, setSiteId] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -208,6 +210,23 @@ function TechnicalPage() {
     }
   };
 
+  const onBulkApply = async (category: "title" | "meta-description" | "schema") => {
+    if (!orgId || !siteId) return;
+    const t = toast.loading(`Bulk applying ${category} fixes…`);
+    try {
+      const res = await bulkApply({
+        data: { organizationId: orgId, siteId, category, limit: 25 },
+      });
+      toast.success(
+        `Applied ${res.applied}${res.failed ? ` · ${res.failed} failed` : ""}`,
+        { id: t },
+      );
+      qc.invalidateQueries({ queryKey: ["technical-recs", orgId, siteId] });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -266,10 +285,21 @@ function TechnicalPage() {
           {Object.entries(groups).map(([cat, items]) => (
             <Card key={cat}>
               <CardHeader>
-                <CardTitle className="text-base capitalize">
-                  {cat.replace(/-/g, " ")}{" "}
-                  <span className="ml-2 text-xs text-muted-foreground">({items.length})</span>
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base capitalize">
+                    {cat.replace(/-/g, " ")}{" "}
+                    <span className="ml-2 text-xs text-muted-foreground">({items.length})</span>
+                  </CardTitle>
+                  {(cat === "title" || cat === "meta-description" || cat === "schema") && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => onBulkApply(cat as "title" | "meta-description" | "schema")}
+                    >
+                      <Wand2 className="mr-1 h-3 w-3" /> Apply all
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 {items.map((r) => (

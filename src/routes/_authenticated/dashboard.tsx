@@ -1,13 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useOrg } from "@/lib/org-context";
 import type { Database } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/dashboard/PageHeader";
-import { Globe, FileSearch, ListTodo, TrendingUp, ArrowRight, Activity } from "lucide-react";
+import {
+  Globe,
+  FileSearch,
+  ListTodo,
+  TrendingUp,
+  ArrowRight,
+  Activity,
+  ShieldCheck,
+} from "lucide-react";
+import { getSiteHealthScores } from "@/lib/technical.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -97,6 +108,13 @@ function DashboardPage() {
     },
   });
 
+  const fetchHealth = useServerFn(getSiteHealthScores);
+  const { data: health } = useQuery({
+    queryKey: ["site-health", orgId],
+    enabled: !!orgId,
+    queryFn: () => fetchHealth({ data: { organizationId: orgId! } }),
+  });
+
   const firstName = (profile?.display_name ?? "").split(" ")[0] || "there";
 
   return (
@@ -127,6 +145,38 @@ function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-8">
         <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Site health (Technical / AEO / GEO)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {health?.sites?.length ? (
+              <ul className="space-y-4">
+                {health.sites.map((s) => (
+                  <li key={s.siteId} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium truncate">{s.name}</span>
+                      <span className="text-muted-foreground tabular-nums">{s.overall}/100</span>
+                    </div>
+                    <Progress value={s.overall} />
+                    <div className="grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                      <span>Technical · {s.technical}</span>
+                      <span>AEO · {s.aeo}</span>
+                      <span>GEO · {s.geo}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Add a site and run a technical scan to see health scores.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Get started</CardTitle>
           </CardHeader>
