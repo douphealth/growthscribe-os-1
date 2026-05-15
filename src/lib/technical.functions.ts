@@ -128,7 +128,7 @@ type Finding = {
   suggested_action: string | null;
 };
 
-function buildFindings(a: PageAudit): Finding[] {
+export function buildFindings(a: PageAudit): Finding[] {
   const out: Finding[] = [];
   if (!a.title) {
     out.push({
@@ -264,7 +264,7 @@ type PsiResult = {
   ttfb: number | null;
 };
 
-async function runPageSpeed(url: string, strategy: "mobile" | "desktop"): Promise<PsiResult> {
+export async function runPageSpeed(url: string, strategy: "mobile" | "desktop"): Promise<PsiResult> {
   const apiKey = process.env.PAGESPEED_API_KEY;
   const params = new URLSearchParams({ url, strategy, category: "performance" });
   if (apiKey) params.set("key", apiKey);
@@ -294,7 +294,7 @@ async function runPageSpeed(url: string, strategy: "mobile" | "desktop"): Promis
   }
 }
 
-function psiFindings(r: PsiResult): Finding[] {
+export function psiFindings(r: PsiResult): Finding[] {
   const out: Finding[] = [];
   const label = r.strategy === "mobile" ? "Mobile" : "Desktop";
   if (r.performance != null && r.performance < 0.5) {
@@ -344,7 +344,7 @@ function psiFindings(r: PsiResult): Finding[] {
   return out;
 }
 
-const SCAN_CATEGORIES = [
+export const SCAN_CATEGORIES = [
   "title",
   "meta-description",
   "headings",
