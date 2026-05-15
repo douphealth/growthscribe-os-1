@@ -58,13 +58,15 @@ function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-secondary px-4 py-12">
-      <Card className="w-full max-w-md border-border/60 shadow-xl">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-12 overflow-hidden">
+      <div className="absolute inset-0 -z-10 bg-mesh" />
+      <div className="absolute inset-0 -z-10 bg-grid" />
+      <Card className="w-full max-w-md border-border/60 shadow-[var(--shadow-elegant)] glass">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-[var(--shadow-glow)]">
             <Sparkles className="h-6 w-6" />
           </div>
-          <CardTitle className="text-2xl">Create your workspace</CardTitle>
+          <CardTitle className="text-2xl tracking-tight">Create your workspace</CardTitle>
           <CardDescription>Start your AI-powered growth command center</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

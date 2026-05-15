@@ -87,11 +87,13 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/dashboard" className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-[var(--shadow-glow)]">
             <Sparkles className="h-4 w-4" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold leading-tight">GrowthScribe</span>
+            <span className="text-sm font-semibold leading-tight font-display tracking-tight">
+              GrowthScribe
+            </span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">OS</span>
           </div>
         </Link>

@@ -36,15 +36,18 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <Card>
+    <Card className="group relative overflow-hidden border-border/60 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elegant)] hover:-translate-y-0.5 transition-all">
+      <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="mt-2 text-3xl font-semibold tracking-tight">{value}</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {label}
+            </p>
+            <p className="mt-3 text-3xl font-semibold tracking-tight font-display">{value}</p>
             {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
           </div>
-          <div className="rounded-lg bg-primary/10 p-2 text-primary">
+          <div className="rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 p-2.5 text-primary ring-1 ring-primary/10 group-hover:ring-primary/30 transition">
             <Icon className="h-5 w-5" />
           </div>
         </div>
