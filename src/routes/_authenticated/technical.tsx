@@ -38,10 +38,15 @@ import {
   discoverInternalLinks,
   scanImageAlts,
   bulkApplyImageAlts,
+  applyInternalLink,
 } from "@/lib/seo-automation.functions";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
 type Rec = Database["public"]["Tables"]["content_recommendations"]["Row"];
+type LinkOpp = Database["public"]["Tables"]["internal_link_opportunities"]["Row"] & {
+  source?: { title: string | null; url: string } | null;
+  target?: { title: string | null; url: string } | null;
+};
 
 export const Route = createFileRoute("/_authenticated/technical")({
   component: TechnicalPage,
@@ -78,6 +83,7 @@ function TechnicalPage() {
   const discoverLinks = useServerFn(discoverInternalLinks);
   const scanAlts = useServerFn(scanImageAlts);
   const bulkAlts = useServerFn(bulkApplyImageAlts);
+  const applyLink = useServerFn(applyInternalLink);
 
   const [siteId, setSiteId] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -113,6 +119,25 @@ function TechnicalPage() {
         .limit(200);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const linksQ = useQuery({
+    queryKey: ["internal-link-opps", orgId, siteId],
+    enabled: !!orgId && !!siteId,
+    queryFn: async (): Promise<LinkOpp[]> => {
+      const { data, error } = await supabase
+        .from("internal_link_opportunities")
+        .select(
+          "*, source:wordpress_posts!internal_link_opportunities_source_post_id_fkey(title,url), target:wordpress_posts!internal_link_opportunities_target_post_id_fkey(title,url)",
+        )
+        .eq("organization_id", orgId!)
+        .eq("site_id", siteId)
+        .eq("status", "suggested")
+        .order("relevance_score", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as unknown as LinkOpp[];
     },
   });
 
@@ -199,6 +224,19 @@ function TechnicalPage() {
     try {
       const res = await discoverLinks({ data: { organizationId: orgId, siteId, limit: 20 } });
       toast.success(`Suggested ${res.suggested} links across ${res.scanned} posts`, { id: t });
+      qc.invalidateQueries({ queryKey: ["internal-link-opps", orgId, siteId] });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    }
+  };
+
+  const onApplyLink = async (opportunityId: string) => {
+    if (!orgId || !siteId) return;
+    const t = toast.loading("Inserting internal link in WordPress…");
+    try {
+      await applyLink({ data: { organizationId: orgId, siteId, opportunityId } });
+      toast.success("Link inserted", { id: t });
+      qc.invalidateQueries({ queryKey: ["internal-link-opps", orgId, siteId] });
     } catch (e) {
       toast.error((e as Error).message, { id: t });
     }
@@ -337,6 +375,53 @@ function TechnicalPage() {
             <Button variant="secondary" size="sm" onClick={onBulkAlts}>
               <Wand2 className="mr-1 h-3 w-3" /> Bulk-fix missing alts
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {siteId && (linksQ.data?.length ?? 0) > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Link2 className="h-4 w-4" /> Internal link opportunities
+              <span className="text-xs text-muted-foreground">
+                ({linksQ.data?.length})
+              </span>
+            </CardTitle>
+            <CardDescription>
+              Anchor inserts auto-detected from content overlap. Applies directly to
+              WordPress.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {linksQ.data?.map((opp) => (
+              <div
+                key={opp.id}
+                className="flex items-start justify-between gap-3 rounded-md border p-3"
+              >
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">
+                      {Math.round((opp.relevance_score ?? 0) * 100)}% match
+                    </Badge>
+                    <p className="font-medium truncate">
+                      “{opp.anchor_suggestion}” → {opp.target?.title ?? opp.target?.url}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    From: {opp.source?.title ?? opp.source?.url}
+                  </p>
+                  {opp.context_snippet && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      …{opp.context_snippet}…
+                    </p>
+                  )}
+                </div>
+                <Button size="sm" variant="outline" onClick={() => onApplyLink(opp.id)}>
+                  <Wand2 className="mr-1 h-3 w-3" /> Apply
+                </Button>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
