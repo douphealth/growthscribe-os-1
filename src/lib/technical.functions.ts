@@ -660,6 +660,68 @@ export const applyWordpressFix = createServerFn({ method: "POST" })
     return { ok: true, wpPostId: preview.wpPostId, link: live.link };
   });
 
+// Queues a fix for human review instead of pushing to WordPress directly.
+// Creates an approval_request with a draft_payload shaped for the approvals
+// worker (see approveApprovalRequest).
+export const requestWordpressFix = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => fixInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+    const preview = await buildFixPreview(
+      supabase,
+      data.organizationId,
+      data.recommendationId,
+    );
+
+    const draft = {
+      postType: preview.postType,
+      wpPostId: preview.wpPostId,
+      field: preview.field,
+      before: preview.before,
+      after: preview.after,
+      category: preview.category,
+      recommendationId: preview.recommendationId,
+    };
+
+    const { data: row, error } = await supabase
+      .from("approval_requests")
+      .insert({
+        organization_id: data.organizationId,
+        site_id: data.siteId,
+        requested_by: userId,
+        draft_payload: draft as unknown as Json,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    await supabase.from("audit_logs").insert({
+      actor_id: userId,
+      organization_id: data.organizationId,
+      action: "wp.fix.request",
+      resource_type: "approval_request",
+      resource_id: row.id,
+      metadata: {
+        recommendationId: data.recommendationId,
+        category: preview.category,
+        wpPostId: preview.wpPostId,
+        field: preview.field,
+      } as Json,
+    });
+    await supabase.from("activities").insert({
+      organization_id: data.organizationId,
+      owner_id: userId,
+      type: "approval.requested",
+      title: `Requested approval: ${preview.category}`,
+      description: `${preview.field} change on WP post ${preview.wpPostId}`,
+      link: "/approvals",
+    });
+    return { ok: true, approvalId: row.id };
+  });
+
 function deriveIndexNowKey(siteId: string): string {
   const salt = process.env.LOVABLE_API_KEY ?? "growthscribe";
   let h = 0n;
