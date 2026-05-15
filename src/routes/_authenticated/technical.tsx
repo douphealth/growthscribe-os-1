@@ -1,0 +1,358 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/org-context";
+import type { Database } from "@/integrations/supabase/types";
+import { PageHeader, EmptyState } from "@/components/dashboard/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Gauge, Wand2, ExternalLink, ShieldCheck } from "lucide-react";
+import {
+  runTechnicalScan,
+  previewWordpressFix,
+  applyWordpressFix,
+  submitIndexNow,
+  type FixPreview,
+} from "@/lib/technical.functions";
+
+type Site = Database["public"]["Tables"]["sites"]["Row"];
+type Rec = Database["public"]["Tables"]["content_recommendations"]["Row"];
+
+export const Route = createFileRoute("/_authenticated/technical")({
+  component: TechnicalPage,
+});
+
+const SCAN_CATEGORIES = [
+  "title",
+  "meta-description",
+  "headings",
+  "canonical",
+  "social",
+  "schema",
+  "accessibility",
+  "thin-content",
+  "internal-links",
+  "core-web-vitals",
+];
+
+function severityVariant(s: string): "default" | "destructive" | "secondary" | "outline" {
+  if (s === "high") return "destructive";
+  if (s === "medium") return "default";
+  return "secondary";
+}
+
+function TechnicalPage() {
+  const { currentOrg } = useOrg();
+  const orgId = currentOrg?.id ?? null;
+  const qc = useQueryClient();
+  const scan = useServerFn(runTechnicalScan);
+  const preview = useServerFn(previewWordpressFix);
+  const apply = useServerFn(applyWordpressFix);
+  const indexNow = useServerFn(submitIndexNow);
+
+  const [siteId, setSiteId] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+  const [previewing, setPreviewing] = useState<FixPreview | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+
+  const sitesQ = useQuery({
+    queryKey: ["sites", orgId],
+    enabled: !!orgId,
+    queryFn: async (): Promise<Site[]> => {
+      const { data, error } = await supabase
+        .from("sites")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .order("created_at");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const recsQ = useQuery({
+    queryKey: ["technical-recs", orgId, siteId],
+    enabled: !!orgId && !!siteId,
+    queryFn: async (): Promise<Rec[]> => {
+      const { data, error } = await supabase
+        .from("content_recommendations")
+        .select("*")
+        .eq("organization_id", orgId!)
+        .eq("site_id", siteId)
+        .eq("status", "open")
+        .in("category", SCAN_CATEGORIES)
+        .order("severity", { ascending: true })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  if (!currentOrg) {
+    return (
+      <EmptyState
+        icon={Gauge}
+        title="No workspace selected"
+        description="Create a workspace to run technical scans."
+        action={
+          <Button asChild>
+            <Link to="/onboarding">Start onboarding</Link>
+          </Button>
+        }
+      />
+    );
+  }
+
+  const sites = sitesQ.data ?? [];
+  const recs = recsQ.data ?? [];
+  const groups = recs.reduce<Record<string, Rec[]>>((acc, r) => {
+    (acc[r.category] ??= []).push(r);
+    return acc;
+  }, {});
+
+  const onScan = async () => {
+    if (!orgId || !siteId) {
+      toast.error("Pick a site first");
+      return;
+    }
+    setBusy(true);
+    const t = toast.loading("Running technical scan…");
+    try {
+      const res = await scan({ data: { organizationId: orgId, siteId, limit: 20 } });
+      toast.success(
+        res.scanned === 0
+          ? res.message ?? "Nothing to scan"
+          : `Scanned ${res.scanned} pages · ${res.findings} findings`,
+        { id: t },
+      );
+      qc.invalidateQueries({ queryKey: ["technical-recs", orgId, siteId] });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPreview = async (rec: Rec) => {
+    setPreviewBusy(true);
+    try {
+      const p = await preview({
+        data: { organizationId: orgId!, siteId, recommendationId: rec.id },
+      });
+      setPreviewing(p);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPreviewBusy(false);
+    }
+  };
+
+  const onApply = async () => {
+    if (!previewing) return;
+    const t = toast.loading("Applying fix to WordPress…");
+    try {
+      await apply({
+        data: {
+          organizationId: orgId!,
+          siteId,
+          recommendationId: previewing.recommendationId,
+        },
+      });
+      toast.success("Fix applied", { id: t });
+      setPreviewing(null);
+      qc.invalidateQueries({ queryKey: ["technical-recs", orgId, siteId] });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    }
+  };
+
+  const onIndexNow = async () => {
+    if (!orgId || !siteId) return;
+    const { data: posts } = await supabase
+      .from("wordpress_posts")
+      .select("url")
+      .eq("organization_id", orgId)
+      .eq("site_id", siteId)
+      .eq("status", "publish")
+      .order("modified_at", { ascending: false, nullsFirst: false })
+      .limit(50);
+    const urls = (posts ?? []).map((p) => p.url).filter(Boolean) as string[];
+    if (urls.length === 0) {
+      toast.error("No URLs to submit. Sync WordPress first.");
+      return;
+    }
+    const t = toast.loading(`Submitting ${urls.length} URLs to IndexNow…`);
+    try {
+      const res = await indexNow({ data: { organizationId: orgId, siteId, urls } });
+      toast.success(`Submitted ${res.count} URLs to Bing/Yandex`, { id: t });
+    } catch (e) {
+      toast.error((e as Error).message, { id: t });
+    }
+  };
+
+  return (
+    <>
+      <PageHeader
+        title="Technical SEO"
+        description="On-page audit, Core Web Vitals via PageSpeed, and one-click fixes pushed to WordPress."
+      />
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" /> Run scan
+          </CardTitle>
+          <CardDescription>
+            Audits up to 20 published posts against title, meta, headings, schema, links,
+            accessibility, and Core Web Vitals.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[240px]">
+            <Select value={siteId} onValueChange={setSiteId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a site" />
+              </SelectTrigger>
+              <SelectContent>
+                {sites.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={onScan} disabled={!siteId || busy}>
+            {busy ? "Scanning…" : "Run technical scan"}
+          </Button>
+          <Button variant="outline" onClick={onIndexNow} disabled={!siteId}>
+            Submit to IndexNow
+          </Button>
+        </CardContent>
+      </Card>
+
+      {!siteId ? (
+        <EmptyState
+          icon={Gauge}
+          title="Pick a site to begin"
+          description="Choose one of your connected WordPress sites above."
+        />
+      ) : recs.length === 0 ? (
+        <EmptyState
+          icon={Gauge}
+          title="No findings yet"
+          description="Run a scan to surface technical issues across your top published pages."
+        />
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(groups).map(([cat, items]) => (
+            <Card key={cat}>
+              <CardHeader>
+                <CardTitle className="text-base capitalize">
+                  {cat.replace(/-/g, " ")}{" "}
+                  <span className="ml-2 text-xs text-muted-foreground">({items.length})</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {items.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-start justify-between gap-3 rounded-md border p-3"
+                  >
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={severityVariant(r.severity)}>{r.severity}</Badge>
+                        <p className="font-medium truncate">{r.title}</p>
+                      </div>
+                      {r.detail && (
+                        <p className="text-sm text-muted-foreground">{r.detail}</p>
+                      )}
+                      {r.suggested_action && (
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Suggested: </span>
+                          {r.suggested_action}
+                        </p>
+                      )}
+                    </div>
+                    {(r.category === "title" ||
+                      r.category === "meta-description" ||
+                      r.category === "schema") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={previewBusy}
+                        onClick={() => onPreview(r)}
+                      >
+                        <Wand2 className="mr-1 h-3 w-3" /> Preview fix
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={!!previewing} onOpenChange={(o) => !o && setPreviewing(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="capitalize">
+              {previewing?.category.replace(/-/g, " ")} fix preview
+            </DialogTitle>
+            <DialogDescription>
+              Updates the <strong>{previewing?.field}</strong> on WP post #
+              {previewing?.wpPostId}. Review before applying.
+            </DialogDescription>
+          </DialogHeader>
+          {previewing && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-auto">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                  Before
+                </p>
+                <pre className="text-xs bg-muted/50 rounded-md p-3 whitespace-pre-wrap break-words">
+                  {previewing.before || "(empty)"}
+                </pre>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                  After
+                </p>
+                <pre className="text-xs bg-primary/5 rounded-md p-3 whitespace-pre-wrap break-words">
+                  {previewing.after}
+                </pre>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPreviewing(null)}>
+              Cancel
+            </Button>
+            <Button onClick={onApply}>
+              <ExternalLink className="mr-1 h-3 w-3" /> Apply to WordPress
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
