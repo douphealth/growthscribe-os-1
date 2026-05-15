@@ -63,6 +63,7 @@ const SCAN_CATEGORIES = [
   "thin-content",
   "internal-links",
   "core-web-vitals",
+  "image-alt",
 ];
 
 function severityVariant(s: string): "default" | "destructive" | "secondary" | "outline" {
@@ -126,18 +127,30 @@ function TechnicalPage() {
     queryKey: ["internal-link-opps", orgId, siteId],
     enabled: !!orgId && !!siteId,
     queryFn: async (): Promise<LinkOpp[]> => {
-      const { data, error } = await supabase
+      const { data: opps, error } = await supabase
         .from("internal_link_opportunities")
-        .select(
-          "*, source:wordpress_posts!internal_link_opportunities_source_post_id_fkey(title,url), target:wordpress_posts!internal_link_opportunities_target_post_id_fkey(title,url)",
-        )
+        .select("*")
         .eq("organization_id", orgId!)
         .eq("site_id", siteId)
         .eq("status", "suggested")
         .order("relevance_score", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data ?? []) as unknown as LinkOpp[];
+      const postIds = Array.from(
+        new Set((opps ?? []).flatMap((o) => [o.source_post_id, o.target_post_id]).filter(Boolean)),
+      ) as string[];
+      if (postIds.length === 0) return (opps ?? []) as LinkOpp[];
+      const { data: posts, error: postsError } = await supabase
+        .from("wordpress_posts")
+        .select("id,title,url")
+        .in("id", postIds);
+      if (postsError) throw postsError;
+      const byId = new Map((posts ?? []).map((p) => [p.id, { title: p.title, url: p.url }]));
+      return (opps ?? []).map((o) => ({
+        ...o,
+        source: o.source_post_id ? (byId.get(o.source_post_id) ?? null) : null,
+        target: o.target_post_id ? (byId.get(o.target_post_id) ?? null) : null,
+      })) as LinkOpp[];
     },
   });
 

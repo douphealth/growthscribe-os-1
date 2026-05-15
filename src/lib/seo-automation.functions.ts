@@ -99,6 +99,24 @@ function ngramScore(sourceTokens: Set<string>, candidate: string): number {
   return hit / candTokens.length;
 }
 
+function linkFirstPlainTextOccurrence(html: string, anchor: string, href: string): string | null {
+  const root = parseHtml(html, { lowerCaseTagName: true });
+  const lowerAnchor = anchor.toLowerCase();
+  const nodes = root.querySelectorAll("p, li, td, blockquote");
+  for (const node of nodes) {
+    if (node.querySelector("a")) continue;
+    const text = node.text;
+    const idx = text.toLowerCase().indexOf(lowerAnchor);
+    if (idx < 0) continue;
+    const before = text.slice(0, idx);
+    const match = text.slice(idx, idx + anchor.length);
+    const after = text.slice(idx + anchor.length);
+    node.set_content(`${before}<a href="${href}">${match}</a>${after}`);
+    return root.toString();
+  }
+  return null;
+}
+
 // =====================================================================
 // Internal linking engine: for each source post, find the top-N target
 // posts whose title overlaps with source body and persist suggestions.
@@ -231,14 +249,8 @@ export const applyInternalLink = createServerFn({ method: "POST" })
     const html = src.content_html ?? "";
     if (!anchor || !html) throw new Error("Nothing to link");
 
-    // Replace first un-linked occurrence (case-insensitive) with an <a>.
-    const escaped = anchor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Negative-lookahead skips occurrences already inside an anchor tag.
-    const re = new RegExp(`(?<!<a[^>]*>[^<]*)\\b${escaped}\\b`, "i");
-    if (!re.test(html)) {
-      throw new Error("Anchor text not found in source post body");
-    }
-    const next = html.replace(re, `<a href="${tgt.url}">${anchor}</a>`);
+    const next = linkFirstPlainTextOccurrence(html, anchor, tgt.url);
+    if (!next) throw new Error("Anchor text not found in an unlinked body paragraph");
 
     const conn = await getWpConnection(supabase, data.organizationId, data.siteId);
     if (!conn) throw new Error("WordPress is not connected for this site");

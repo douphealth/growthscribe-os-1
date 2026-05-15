@@ -36,6 +36,13 @@ type Rec = {
 
 const REFRESH_DAYS = 180;
 const STALE_DAYS = 365;
+const OWNED_CATEGORIES = [
+  "refresh",
+  "expand",
+  "striking-distance",
+  "internal-link",
+  "merge-or-prune",
+];
 
 export const generateRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -221,13 +228,14 @@ export const generateRecommendations = createServerFn({ method: "POST" })
       return { ok: true as const, generated: 0, message: "No new recommendations." };
     }
 
-    // Reset open recs for this site so we don't pile up duplicates
+    // Reset only recommendation-engine rows so technical scan findings stay intact.
     await supabase
       .from("content_recommendations")
       .delete()
       .eq("organization_id", data.organizationId)
       .eq("site_id", data.siteId)
-      .eq("status", "open");
+      .eq("status", "open")
+      .in("category", OWNED_CATEGORIES);
 
     for (let i = 0; i < recs.length; i += 200) {
       const chunk = recs.slice(i, i + 200);
