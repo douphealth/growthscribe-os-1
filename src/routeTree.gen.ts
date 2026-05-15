@@ -29,6 +29,7 @@ import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAiVisibilityRouteImport } from './routes/_authenticated/ai-visibility'
 import { Route as ApiPublicCronWorkerRouteImport } from './routes/api/public/cron/worker'
 import { Route as ApiPublicCronScanRouteImport } from './routes/api/public/cron/scan'
+import { Route as ApiPublicCronGscPullRouteImport } from './routes/api/public/cron/gsc-pull'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -134,6 +135,11 @@ const ApiPublicCronScanRoute = ApiPublicCronScanRouteImport.update({
   path: '/api/public/cron/scan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCronGscPullRoute = ApiPublicCronGscPullRouteImport.update({
+  id: '/api/public/cron/gsc-pull',
+  path: '/api/public/cron/gsc-pull',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
 }
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksRoute
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
 }
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/technical': typeof AuthenticatedTechnicalRoute
   '/_authenticated/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
 }
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/technical'
     | '/topical-maps'
+    | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
   fileRoutesByTo: FileRoutesByTo
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/technical'
     | '/topical-maps'
+    | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
   id:
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/_authenticated/technical'
     | '/_authenticated/topical-maps'
+    | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
   fileRoutesById: FileRoutesById
@@ -272,6 +284,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  ApiPublicCronGscPullRoute: typeof ApiPublicCronGscPullRoute
   ApiPublicCronScanRoute: typeof ApiPublicCronScanRoute
   ApiPublicCronWorkerRoute: typeof ApiPublicCronWorkerRoute
 }
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronScanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/gsc-pull': {
+      id: '/api/public/cron/gsc-pull'
+      path: '/api/public/cron/gsc-pull'
+      fullPath: '/api/public/cron/gsc-pull'
+      preLoaderRoute: typeof ApiPublicCronGscPullRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -463,6 +483,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  ApiPublicCronGscPullRoute: ApiPublicCronGscPullRoute,
   ApiPublicCronScanRoute: ApiPublicCronScanRoute,
   ApiPublicCronWorkerRoute: ApiPublicCronWorkerRoute,
 }
