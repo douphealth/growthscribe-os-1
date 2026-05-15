@@ -170,7 +170,7 @@ export const Route = createFileRoute("/api/public/cron/worker")({
 
         const { data: candidates, error: cErr } = await admin
           .from("background_jobs")
-          .select("id, job_type, organization_id, site_id, payload")
+          .select("id, job_type, organization_id, site_id, payload, created_by")
           .eq("status", "queued")
           .order("created_at", { ascending: true })
           .limit(MAX_JOBS_PER_TICK);
@@ -202,7 +202,7 @@ export const Route = createFileRoute("/api/public/cron/worker")({
               .eq("id", c.id);
             await admin.from("activities").insert({
               organization_id: c.organization_id,
-              owner_id: (await admin.from("background_jobs").select("created_by").eq("id", c.id).maybeSingle()).data?.created_by ?? "00000000-0000-0000-0000-000000000000",
+              owner_id: c.created_by,
               type: c.job_type,
               title: `${c.job_type} completed`,
               description: JSON.stringify(result).slice(0, 240),
