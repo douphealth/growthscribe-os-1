@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json, Database } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { scoreContent } from "./content-scoring";
 
 type SB = SupabaseClient<Database>;
 type EncryptedSecret = {
@@ -324,6 +325,17 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
     featuredMedia?.media_details?.sizes?.large?.source_url ??
     featuredMedia?.media_details?.sizes?.medium?.source_url ??
     null;
+  const title = stripHtml(item.title?.rendered) || null;
+  const excerpt = stripHtml(item.excerpt?.rendered) || null;
+  const url = item.link ?? "";
+  const scores = scoreContent({
+    title,
+    excerpt,
+    contentHtml: html || null,
+    contentText: text || null,
+    wordCount: wc,
+    url,
+  });
   return {
     organization_id: organizationId,
     site_id: siteId,
@@ -331,9 +343,9 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
     post_type: item.type ?? "post",
     status: item.status ?? null,
     slug: item.slug ?? null,
-    url: item.link ?? "",
-    title: stripHtml(item.title?.rendered) || null,
-    excerpt: stripHtml(item.excerpt?.rendered) || null,
+    url,
+    title,
+    excerpt,
     content_html: html || null,
     content_text: text || null,
     word_count: wc,
@@ -345,6 +357,9 @@ function mapItem(item: WpItem, organizationId: string, siteId: string) {
     tags: tags as unknown as Json,
     featured_image_url: featuredImageUrl,
     freshness_score: fresh,
+    seo_score: scores.seo_score,
+    aeo_score: scores.aeo_score,
+    geo_score: scores.geo_score,
     recommended_action: recommendedAction({
       status: item.status ?? null,
       wordCount: wc,
