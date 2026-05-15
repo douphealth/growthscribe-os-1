@@ -46,10 +46,12 @@ import {
   ListTodo,
   Download,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { syncWordpressContent } from "@/lib/wordpress.functions";
 import { runContentAudit } from "@/lib/audit.functions";
 import { generateContentBrief } from "@/lib/brief.functions";
+import { scoreInventory } from "@/lib/score-inventory.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
@@ -83,6 +85,7 @@ function ContentInventoryPage() {
   const sync = useServerFn(syncWordpressContent);
   const runAudit = useServerFn(runContentAudit);
   const genBrief = useServerFn(generateContentBrief);
+  const score = useServerFn(scoreInventory);
 
   const [siteId, setSiteId] = useState<string>("all");
   const [postType, setPostType] = useState<string>("all");
@@ -354,9 +357,33 @@ function ContentInventoryPage() {
         title="Content Inventory"
         description="All synced WordPress posts and pages with quality, freshness, and opportunity signals."
         actions={
-          <Button onClick={handleSync} disabled={sites.length === 0}>
-            <RefreshCw className="h-4 w-4 mr-2" /> Sync from WordPress
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!orgId) return;
+                const t = toast.loading("Scoring posts…");
+                try {
+                  const r = await score({
+                    data: {
+                      organizationId: orgId,
+                      siteId: siteId === "all" ? undefined : siteId,
+                      onlyMissing: false,
+                    },
+                  });
+                  toast.success(`Scored ${r.scored} posts`, { id: t });
+                  qc.invalidateQueries({ queryKey: ["wp-content", orgId] });
+                } catch (e) {
+                  toast.error((e as Error).message, { id: t });
+                }
+              }}
+            >
+              <Sparkles className="h-4 w-4 mr-2" /> Score SEO / AEO / GEO
+            </Button>
+            <Button onClick={handleSync} disabled={sites.length === 0}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Sync from WordPress
+            </Button>
+          </div>
         }
       />
 
