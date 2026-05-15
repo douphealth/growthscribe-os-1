@@ -48,7 +48,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { syncWordpressContent } from "@/lib/wordpress.functions";
-import { runContentAudit, generateContentBrief } from "@/lib/growth.functions";
+import { runContentAudit } from "@/lib/audit.functions";
+import { generateContentBrief } from "@/lib/brief.functions";
 import type { Database } from "@/integrations/supabase/types";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
@@ -224,8 +225,8 @@ function ContentInventoryPage() {
   const handleAudit = async (p: Post) => {
     if (!orgId) return;
     try {
-      await runAudit({ data: { organizationId: orgId, siteId: p.site_id, url: p.url } });
-      toast.success("Audit queued");
+      const res = await runAudit({ data: { organizationId: orgId, siteId: p.site_id, url: p.url } });
+      toast.success(`Audit complete · Quality ${res.quality_score}/100`);
       navigate({ to: "/audits" });
     } catch (e) {
       toast.error((e as Error).message);
@@ -236,7 +237,7 @@ function ContentInventoryPage() {
     if (!orgId || !p.title) return;
     try {
       await genBrief({ data: { organizationId: orgId, siteId: p.site_id, title: p.title } });
-      toast.success("Brief queued");
+      toast.success("Brief ready");
       navigate({ to: "/briefs" });
     } catch (e) {
       toast.error((e as Error).message);
@@ -263,7 +264,7 @@ function ContentInventoryPage() {
   const bulkAudit = async () => {
     if (!orgId || selectedPosts.length === 0) return;
     setBulkBusy(true);
-    const t = toast.loading(`Queuing ${selectedPosts.length} audits…`);
+    const t = toast.loading(`Running ${selectedPosts.length} audits…`);
     let ok = 0;
     for (const p of selectedPosts) {
       try {
@@ -273,7 +274,7 @@ function ContentInventoryPage() {
         /* continue */
       }
     }
-    toast.success(`Queued ${ok}/${selectedPosts.length} audits`, { id: t });
+    toast.success(`Completed ${ok}/${selectedPosts.length} audits`, { id: t });
     setBulkBusy(false);
   };
 
