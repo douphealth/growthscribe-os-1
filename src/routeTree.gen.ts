@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTopicalMapsRouteImport } from './routes/_authenticated/topical-maps'
+import { Route as AuthenticatedTechnicalRouteImport } from './routes/_authenticated/technical'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSitesRouteImport } from './routes/_authenticated/sites'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -52,6 +53,11 @@ const AuthenticatedTopicalMapsRoute =
     path: '/topical-maps',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedTechnicalRoute = AuthenticatedTechnicalRouteImport.update({
+  id: '/technical',
+  path: '/technical',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
 }
 export interface FileRoutesByTo {
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
 }
 export interface FileRoutesById {
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/_authenticated/technical': typeof AuthenticatedTechnicalRoute
   '/_authenticated/topical-maps': typeof AuthenticatedTopicalMapsRoute
 }
 export interface FileRouteTypes {
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sites'
     | '/tasks'
+    | '/technical'
     | '/topical-maps'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sites'
     | '/tasks'
+    | '/technical'
     | '/topical-maps'
   id:
     | '__root__'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/sites'
     | '/_authenticated/tasks'
+    | '/_authenticated/technical'
     | '/_authenticated/topical-maps'
   fileRoutesById: FileRoutesById
 }
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/topical-maps'
       fullPath: '/topical-maps'
       preLoaderRoute: typeof AuthenticatedTopicalMapsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/technical': {
+      id: '/_authenticated/technical'
+      path: '/technical'
+      fullPath: '/technical'
+      preLoaderRoute: typeof AuthenticatedTechnicalRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tasks': {
@@ -375,6 +394,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
+  AuthenticatedTechnicalRoute: typeof AuthenticatedTechnicalRoute
   AuthenticatedTopicalMapsRoute: typeof AuthenticatedTopicalMapsRoute
 }
 
@@ -391,6 +411,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
+  AuthenticatedTechnicalRoute: AuthenticatedTechnicalRoute,
   AuthenticatedTopicalMapsRoute: AuthenticatedTopicalMapsRoute,
 }
 
