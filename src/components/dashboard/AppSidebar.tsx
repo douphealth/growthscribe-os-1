@@ -18,6 +18,7 @@ import {
   Lightbulb,
   Bot,
   Wrench,
+  CheckCircle2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,6 +64,7 @@ const sections = [
       { title: "Tasks", url: "/tasks", icon: ListTodo },
       { title: "AI Visibility", url: "/ai-visibility", icon: Bot },
       { title: "Technical SEO", url: "/technical", icon: Wrench },
+      { title: "Approvals", url: "/approvals", icon: CheckCircle2 },
     ],
   },
   {
