@@ -19,6 +19,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getSiteHealthScores } from "@/lib/technical.functions";
+import { PrioritizedActionQueue } from "@/components/dashboard/PrioritizedActionQueue";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -147,7 +148,11 @@ function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-8">
-        <Card className="lg:col-span-2">
+        <div className="lg:col-span-2">
+          <PrioritizedActionQueue orgId={orgId} />
+        </div>
+
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" /> Site health (Technical / AEO / GEO)
@@ -179,7 +184,7 @@ function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Get started</CardTitle>
           </CardHeader>
