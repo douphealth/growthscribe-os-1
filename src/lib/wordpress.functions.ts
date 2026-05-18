@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json, Database } from "@/integrations/supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { scoreContent } from "./content-scoring";
+import { callLovableAIStructured } from "./ai-gateway";
 
 type SB = SupabaseClient<Database>;
 type EncryptedSecret = {
