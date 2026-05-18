@@ -915,6 +915,57 @@ export type Database = {
         }
         Relationships: []
       }
+      page_vitals: {
+        Row: {
+          cls: number | null
+          fcp_ms: number | null
+          fetched_at: string
+          id: string
+          inp_ms: number | null
+          lcp_ms: number | null
+          organization_id: string
+          performance_score: number | null
+          post_id: string | null
+          raw: Json | null
+          site_id: string
+          strategy: string
+          ttfb_ms: number | null
+          url: string
+        }
+        Insert: {
+          cls?: number | null
+          fcp_ms?: number | null
+          fetched_at?: string
+          id?: string
+          inp_ms?: number | null
+          lcp_ms?: number | null
+          organization_id: string
+          performance_score?: number | null
+          post_id?: string | null
+          raw?: Json | null
+          site_id: string
+          strategy: string
+          ttfb_ms?: number | null
+          url: string
+        }
+        Update: {
+          cls?: number | null
+          fcp_ms?: number | null
+          fetched_at?: string
+          id?: string
+          inp_ms?: number | null
+          lcp_ms?: number | null
+          organization_id?: string
+          performance_score?: number | null
+          post_id?: string | null
+          raw?: Json | null
+          site_id?: string
+          strategy?: string
+          ttfb_ms?: number | null
+          url?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

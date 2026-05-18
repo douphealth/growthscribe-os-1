@@ -27,11 +27,13 @@ import {
   Maximize2,
   Check,
   ExternalLink,
+  Wand2,
 } from "lucide-react";
 import {
   generateRecommendations,
   updateRecommendationStatus,
 } from "@/lib/recommendations.functions";
+import { WpFixDrawer } from "@/components/recommendations/WpFixDrawer";
 
 type Rec = Database["public"]["Tables"]["content_recommendations"]["Row"];
 type Site = Database["public"]["Tables"]["sites"]["Row"];
@@ -60,6 +62,8 @@ function Page() {
   const [siteId, setSiteId] = useState<string>("");
   const [filter, setFilter] = useState<string>("all");
   const [busy, setBusy] = useState(false);
+  const [fixOpen, setFixOpen] = useState(false);
+  const [fixRecId, setFixRecId] = useState<string | null>(null);
 
   const sitesQ = useQuery({
     queryKey: ["sites", orgId],
@@ -282,6 +286,17 @@ function Page() {
                         <div className="flex flex-col items-end gap-2 shrink-0">
                           {r.status === "open" && (
                             <>
+                              {r.post_id && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setFixRecId(r.id);
+                                    setFixOpen(true);
+                                  }}
+                                >
+                                  <Wand2 className="h-3 w-3 mr-1" /> Fix on WP
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -312,6 +327,19 @@ function Page() {
             </div>
           )}
         </>
+      )}
+      {orgId && activeSiteId && (
+        <WpFixDrawer
+          open={fixOpen}
+          onOpenChange={setFixOpen}
+          organizationId={orgId}
+          siteId={activeSiteId}
+          recommendationId={fixRecId}
+          onApplied={() => {
+            qc.invalidateQueries({ queryKey: ["recs", orgId, activeSiteId] });
+            qc.invalidateQueries({ queryKey: ["wp-content", orgId] });
+          }}
+        />
       )}
     </>
   );

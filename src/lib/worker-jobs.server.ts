@@ -524,3 +524,97 @@ export async function runGa4Import(admin: Admin, job: JobRow) {
   }
   return { ok: true, note: "GA4 ingestion pending connector wiring" };
 }
+
+// ---------- jobs: vitals.refresh (PageSpeed Insights) ----------
+
+type PsiResult = {
+  performance_score: number | null;
+  lcp_ms: number | null;
+  inp_ms: number | null;
+  cls: number | null;
+  ttfb_ms: number | null;
+  fcp_ms: number | null;
+  raw: Json;
+};
+
+async function fetchPsi(url: string, strategy: "mobile" | "desktop"): Promise<PsiResult | null> {
+  const apiKey = process.env.GOOGLE_PAGESPEED_API_KEY ?? process.env.GOOGLE_SEARCH_CONSOLE_API_KEY ?? "";
+  const params = new URLSearchParams({ url, strategy, category: "performance" });
+  if (apiKey) params.set("key", apiKey);
+  const endpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params.toString()}`;
+  const res = await fetch(endpoint);
+  if (!res.ok) return null;
+  const json = (await res.json()) as {
+    lighthouseResult?: {
+      categories?: { performance?: { score?: number } };
+      audits?: Record<string, { numericValue?: number }>;
+    };
+  };
+  const lh = json.lighthouseResult;
+  const score = lh?.categories?.performance?.score;
+  const audits = lh?.audits ?? {};
+  return {
+    performance_score: score != null ? Math.round(score * 100) : null,
+    lcp_ms: audits["largest-contentful-paint"]?.numericValue
+      ? Math.round(audits["largest-contentful-paint"].numericValue)
+      : null,
+    inp_ms: audits["interaction-to-next-paint"]?.numericValue
+      ? Math.round(audits["interaction-to-next-paint"].numericValue)
+      : audits["max-potential-fid"]?.numericValue
+        ? Math.round(audits["max-potential-fid"].numericValue)
+        : null,
+    cls: audits["cumulative-layout-shift"]?.numericValue ?? null,
+    ttfb_ms: audits["server-response-time"]?.numericValue
+      ? Math.round(audits["server-response-time"].numericValue)
+      : null,
+    fcp_ms: audits["first-contentful-paint"]?.numericValue
+      ? Math.round(audits["first-contentful-paint"].numericValue)
+      : null,
+    raw: { score: score ?? null } as Json,
+  };
+}
+
+export async function runVitalsRefresh(admin: Admin, job: JobRow) {
+  if (!job.site_id) throw new Error("vitals.refresh requires site_id");
+  const limit = Math.min(
+    25,
+    Math.max(1, Number((job.payload as { limit?: number })?.limit ?? 10)),
+  );
+  const { data: posts, error } = await admin
+    .from("wordpress_posts")
+    .select("id, url")
+    .eq("organization_id", job.organization_id)
+    .eq("site_id", job.site_id)
+    .eq("status", "publish")
+    .order("modified_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error) throw error;
+  if (!posts || posts.length === 0) return { measured: 0 };
+
+  let measured = 0;
+  const rows: Array<Record<string, unknown>> = [];
+  for (const p of posts) {
+    if (!p.url) continue;
+    for (const strategy of ["mobile", "desktop"] as const) {
+      const psi = await fetchPsi(p.url, strategy);
+      if (!psi) continue;
+      rows.push({
+        organization_id: job.organization_id,
+        site_id: job.site_id,
+        post_id: p.id,
+        url: p.url,
+        strategy,
+        ...psi,
+        fetched_at: new Date().toISOString(),
+      });
+      measured++;
+    }
+  }
+  if (rows.length > 0) {
+    const { error: upErr } = await admin
+      .from("page_vitals" as never)
+      .upsert(rows as never, { onConflict: "site_id,url,strategy" });
+    if (upErr) throw upErr;
+  }
+  return { measured };
+}
