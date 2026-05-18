@@ -1,82 +1,56 @@
+## Phased rollout to make every feature actually work
 
-# GrowthScribe OS — Phased SOTA rollout
+The app has all the UI and most server-fn scaffolding, but jobs queue and never run, and several scanners return placeholder data. I'll ship in three focused passes so each one is fully working before moving on, instead of half-finishing everything.
 
-You picked: all three scopes, phased; PageSpeed + GA4 + Semrush + IndexNow; one-click apply with diff preview. I'll ship Phase 1 in this pass and queue Phases 2–3 for follow-ups so each lands deep, tested, and reliable instead of shallow everywhere.
+### Pass 1 (this turn) — Make the queue real
 
-## Phase 1 (this pass) — Technical SEO scanner + one-click WP fixes
+Without this, every "Run scan", "Sync", "Test AI visibility" button is silent.
 
-A real per-URL scanner that pulls the page, parses it, queries PageSpeed, scores it, persists findings, and lets the user apply fixes back to WordPress with a side-by-side diff.
+1. **Schedule the worker via pg_cron** (`cron.schedule` calls
+   `/api/public/cron/worker` every 60s with the anon `apikey` header). Also
+   schedule `/api/public/cron/scan` daily and `/api/public/cron/gsc-pull`
+   daily.
+2. **Extend `worker.ts` dispatch** to handle every `job_type` currently
+   enqueued by the UI:
+   - `wp_verify` → ping `/wp-json` with stored creds, mark
+     `integration_connections.status`.
+   - `wp_sync` → full paginated sync of posts/pages, score each via
+     `scoreContent`, upsert `wordpress_posts`.
+   - `content_audit` → call existing `runContentAudit` logic (LLM via
+     Lovable AI) and write to `content_audits`.
+   - `brief_generate` → LLM call → fill `content_briefs.outline` /
+     `aeo_questions` / `geo_signals` / `internal_links`.
+   - `ai_visibility` → call Lovable AI Gateway for the configured engine,
+     parse citations, persist to `ai_visibility_tests`.
+   - `gsc_import` / `ga4_import` → stub-friendly: persist a "needs connector"
+     error if the connector isn't connected; pull last 28 days when it is.
+3. **Realtime job status in UI**: subscribe to `background_jobs` changes on
+   the Technical / Inventory / AI-visibility pages so the user sees
+   queued → running → succeeded without refresh.
 
-### What ships
+### Pass 2 — Real on-page intelligence (next turn)
 
-1. **Site crawl + per-page scan** (`runTechnicalScan(siteId)`)
-   - Reads `wordpress_posts` for the site (already synced).
-   - Per post: fetch URL with timeout/retry, parse with `node-html-parser`, extract `title`, meta description, canonical, OG/Twitter, H1 count, image alt coverage, internal/external link counts, schema.org JSON-LD presence, word count.
-   - Calls Google **PageSpeed Insights v5** (mobile + desktop) for Core Web Vitals: LCP, INP, CLS, performance score. No API key needed for low volume; uses `PAGESPEED_API_KEY` env if present.
-   - Writes structured findings to `content_recommendations` (severity, category, suggested_action, post_id) with a `meta_json` payload of before-state.
+1. **PageSpeed per post** → new `page_vitals` table (LCP/INP/CLS/perf score
+   per device), surfaced as a column + gauge in Content Inventory.
+2. **One-click WP fix with diff preview**: route `/recommendations` opens a
+   drawer that calls `previewWordPressFix` → renders side-by-side diff →
+   `applyWordPressFix` PUTs to WP and marks recommendation `done`.
+3. **IndexNow submit** for recently updated posts.
 
-2. **One-click apply with diff** (`applyWordPressFix(recommendationId, payload)`)
-   - Server fn fetches the post via WP REST (`/wp-json/wp/v2/{type}/{id}`).
-   - Computes the proposed change (e.g. new SEO title via Yoast/RankMath meta, new alt text, injected JSON-LD).
-   - Returns `{ before, after, diff }` for preview.
-   - On confirm, `PUT`s back to WP using stored Application Password.
-   - Logs to `activities` and `audit_logs`. Marks recommendation `done`.
+### Pass 3 — Differentiators
 
-3. **Bing IndexNow** (`submitIndexNow(siteId, urls[])`)
-   - Generates per-site key file at `/{key}.txt`, persists key in `sites.config_json`.
-   - POSTs to `https://api.indexnow.org/indexnow` with the URL list.
-   - "Submit recently updated" button on each site card.
+1. **Prioritized Action Queue** on dashboard, ranked
+   `(impact × confidence) / effort`.
+2. **Bulk apply runner** with rate-limit, rollback, audit log.
+3. **Semrush enrichment loop** → top pages + keyword gaps surfaced as
+   "striking distance" cards.
+4. **Topical authority gap map** vs a competitor's Semrush top pages.
 
-4. **Semrush enrichment** for the recommendations engine
-   - `enrichWithSemrush(siteId)` calls `semrush--top_pages` + `semrush--page_analysis` for the site's top URLs and merges keyword + difficulty into `keyword_rankings`.
+### Out of scope this rollout
 
-5. **New page `/technical`**
-   - Site picker, "Run scan" button (queues `background_jobs` row, polls progress).
-   - Results table grouped by issue type with severity chips, before/after preview drawer, "Apply fix" + "Apply all in group" buttons.
-   - PageSpeed gauge per device, CWV pass/fail badges.
+- New auth flows, billing, custom design system.
+- Building the full GA4/GSC OAuth UI — passes 1/2 just wire what the
+  Google connector already exposes.
 
-6. **Cloud White polish**
-   - Reuses existing tokens. New `Gauge`, `DiffViewer`, `IssueRow` components — no new design system.
-
-### Files
-
-```text
-src/lib/technical.functions.ts         # runTechnicalScan, applyWordPressFix, submitIndexNow, enrichWithSemrush
-src/lib/wordpress.server.ts            # extend with putPost + meta helpers
-src/components/technical/Gauge.tsx
-src/components/technical/DiffViewer.tsx
-src/components/technical/IssueRow.tsx
-src/routes/_authenticated/technical.tsx
-```
-
-DB: no schema change required — `content_recommendations.meta` is encoded in `detail`/`suggested_action`. If we need richer payloads I'll add a single `meta` jsonb column via migration; otherwise skipped.
-
-### Dependencies
-
-- `node-html-parser` (Worker-safe, no native deps).
-- No new design libs.
-
-### Verification
-
-- `bun run typecheck`, `lint`, `test`, `build`. New unit test for the parser (extract from a fixture HTML) and for the diff serializer.
-
-## Phase 2 (next pass) — GEO/AEO + AI visibility
-
-- Schema.org generator (Article, FAQ, HowTo) wired into `applyWordPressFix`.
-- Entity extraction → `entities` table, answer-snippet rewriter.
-- AI citation tracker hitting Lovable AI Gateway (Gemini, GPT-5) with batched prompts; persists to `ai_visibility_tests` (already exists).
-- Per-site AEO score on the dashboard.
-
-## Phase 3 (pass after that) — Bulk auto-apply + GA4 + automation
-
-- GA4 connector (you'll be prompted to connect it).
-- Bulk fix runner with rate-limit + rollback.
-- Scheduled scans via `pg_cron` → `/api/public/cron/scan` route.
-
-## Out of scope (intentionally)
-
-- Payments, SERP rank tracking, anything not requested.
-- New auth flows.
-- Replacing the existing recommendations / audits / briefs pages — they get linked from the new `/technical` page.
-
-Approve and I'll execute Phase 1 now.
+Approve Pass 1 and I'll ship it now; passes 2 and 3 follow in subsequent
+turns so each ships fully tested instead of half-built.
