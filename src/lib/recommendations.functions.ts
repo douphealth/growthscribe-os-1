@@ -276,6 +276,35 @@ export const updateRecommendationStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const bulkInput = z.object({
+  organizationId: z.string().uuid(),
+  recommendationIds: z.array(z.string().uuid()).min(1).max(200),
+  status: z.enum(["open", "in_progress", "done", "dismissed"]),
+});
+
+export const bulkUpdateRecommendationStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => bulkInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+    const { error, count } = await supabase
+      .from("content_recommendations")
+      .update({ status: data.status }, { count: "exact" })
+      .in("id", data.recommendationIds)
+      .eq("organization_id", data.organizationId);
+    if (error) throw error;
+    await supabase.from("activities").insert({
+      organization_id: data.organizationId,
+      owner_id: userId,
+      type: "recommendations.bulk_update",
+      title: `${count ?? data.recommendationIds.length} recommendations marked ${data.status}`,
+      description: null,
+      link: "/recommendations",
+    });
+    return { ok: true as const, updated: count ?? data.recommendationIds.length };
+  });
+
 // ---------------- Prioritized Action Queue ----------------
 // Surfaces a single ranked list across all sites in the org, scored by
 // (impact x confidence) / effort. Used on the dashboard.

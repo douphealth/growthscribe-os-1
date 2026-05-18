@@ -32,8 +32,10 @@ import {
 import {
   generateRecommendations,
   updateRecommendationStatus,
+  bulkUpdateRecommendationStatus,
 } from "@/lib/recommendations.functions";
 import { WpFixDrawer } from "@/components/recommendations/WpFixDrawer";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Rec = Database["public"]["Tables"]["content_recommendations"]["Row"];
 type Site = Database["public"]["Tables"]["sites"]["Row"];
@@ -59,11 +61,13 @@ function Page() {
   const qc = useQueryClient();
   const generate = useServerFn(generateRecommendations);
   const update = useServerFn(updateRecommendationStatus);
+  const bulkUpdate = useServerFn(bulkUpdateRecommendationStatus);
   const [siteId, setSiteId] = useState<string>("");
   const [filter, setFilter] = useState<string>("all");
   const [busy, setBusy] = useState(false);
   const [fixOpen, setFixOpen] = useState(false);
   const [fixRecId, setFixRecId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const sitesQ = useQuery({
     queryKey: ["sites", orgId],
@@ -150,6 +154,36 @@ function Page() {
       qc.invalidateQueries({ queryKey: ["recs", orgId, activeSiteId] });
     } catch (err) {
       toast.error((err as Error).message);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllVisible = (checked: boolean) => {
+    setSelected(checked ? new Set(filtered.filter((r) => r.status === "open").map((r) => r.id)) : new Set());
+  };
+
+  const runBulk = async (status: "done" | "dismissed" | "in_progress") => {
+    if (!orgId || selected.size === 0) return;
+    const ids = Array.from(selected);
+    const t = toast.loading(`Updating ${ids.length} recommendations…`);
+    try {
+      const res = await bulkUpdate({
+        data: { organizationId: orgId, recommendationIds: ids, status },
+      });
+      toast.success(`${res.updated} updated`, { id: t });
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["recs", orgId, activeSiteId] });
+      qc.invalidateQueries({ queryKey: ["prioritized-actions", orgId] });
+    } catch (err) {
+      toast.error((err as Error).message, { id: t });
     }
   };
 
@@ -242,7 +276,36 @@ function Page() {
               description="Click Generate to analyze synced posts and Search Console data."
             />
           ) : (
-            <div className="space-y-3">
+            <>
+              <div className="flex items-center justify-between gap-3 mb-3 px-1">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Checkbox
+                    checked={
+                      selected.size > 0 &&
+                      filtered.filter((r) => r.status === "open").every((r) => selected.has(r.id))
+                    }
+                    onCheckedChange={(c) => selectAllVisible(c === true)}
+                  />
+                  Select all open ({filtered.filter((r) => r.status === "open").length})
+                </label>
+                {selected.size > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {selected.size} selected
+                    </span>
+                    <Button size="sm" variant="outline" onClick={() => runBulk("in_progress")}>
+                      Mark in progress
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => runBulk("done")}>
+                      <Check className="h-3 w-3 mr-1" /> Mark done
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => runBulk("dismissed")}>
+                      Dismiss
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-3">
               {filtered.map((r) => {
                 const Meta = CATEGORY_META[r.category] ?? {
                   label: r.category,
@@ -253,6 +316,14 @@ function Page() {
                   <Card key={r.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
+                        {r.status === "open" && (
+                          <Checkbox
+                            className="mt-1.5"
+                            checked={selected.has(r.id)}
+                            onCheckedChange={() => toggleSelect(r.id)}
+                            aria-label="Select recommendation"
+                          />
+                        )}
                         <div className="mt-0.5 rounded-md bg-primary/10 p-2 text-primary">
                           <Icon className="h-4 w-4" />
                         </div>
@@ -324,7 +395,8 @@ function Page() {
                   </Card>
                 );
               })}
-            </div>
+              </div>
+            </>
           )}
         </>
       )}
