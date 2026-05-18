@@ -9,18 +9,24 @@ const REQUIRED_VARS = {
 
 export type RequiredEnvVar = keyof typeof REQUIRED_VARS;
 
-function readProcessEnv(): Record<string, string | undefined> {
-  const maybeGlobal = globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> };
-  };
-  return maybeGlobal.process?.env ?? {};
+function getEnvValue(name: string): string | undefined {
+  switch (name) {
+    case "VITE_SUPABASE_URL":
+      return import.meta.env.VITE_SUPABASE_URL;
+    case "VITE_SUPABASE_PUBLISHABLE_KEY":
+      return import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    case "SUPABASE_URL":
+      return typeof process !== "undefined" ? process.env.SUPABASE_URL : undefined;
+    case "SUPABASE_PUBLISHABLE_KEY":
+      return typeof process !== "undefined" ? process.env.SUPABASE_PUBLISHABLE_KEY : undefined;
+    default:
+      return undefined;
+  }
 }
 
 function hasAnyEnvValue(names: readonly string[]): boolean {
-  const viteEnv = (import.meta as { env?: Record<string, string | undefined> }).env ?? {};
-  const processEnv = readProcessEnv();
   return names.some((name) => {
-    const value = viteEnv[name] ?? processEnv[name];
+    const value = getEnvValue(name);
     return typeof value === "string" && value.trim() !== "";
   });
 }
