@@ -8,6 +8,16 @@ import {
   psiFindings,
   SCAN_CATEGORIES,
 } from "@/lib/technical.functions";
+import {
+  runWpVerify,
+  runWpSync,
+  runContentAudit,
+  runBriefGenerate,
+  runAiVisibility,
+  runGscImport,
+  runGa4Import,
+  type JobRow,
+} from "@/lib/worker-jobs.server";
 
 // Background job worker. Drains the `background_jobs` queue. Triggered every
 // minute by pg_cron (and safe to invoke manually). Atomically claims jobs by
@@ -116,17 +126,27 @@ async function runTechnicalScanJob(
 
 async function dispatch(
   admin: Admin,
-  job: {
-    id: string;
-    job_type: string;
-    organization_id: string;
-    site_id: string | null;
-    payload: unknown;
-  },
+  job: JobRow,
 ) {
   switch (job.job_type) {
     case "technical.scan":
       return runTechnicalScanJob(admin, job);
+    case "wp_verify":
+      return runWpVerify(admin, job);
+    case "wp_sync":
+    case "wordpress.sync":
+      return runWpSync(admin, job);
+    case "content_audit":
+      return runContentAudit(admin, job);
+    case "brief_generate":
+      return runBriefGenerate(admin, job);
+    case "ai_visibility":
+      return runAiVisibility(admin, job);
+    case "gsc_import":
+    case "gsc.pull":
+      return runGscImport(admin, job);
+    case "ga4_import":
+      return runGa4Import(admin, job);
     default:
       throw new Error(`Unknown job_type: ${job.job_type}`);
   }
