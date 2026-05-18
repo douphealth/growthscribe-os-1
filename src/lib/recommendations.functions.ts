@@ -422,3 +422,124 @@ export const getPrioritizedActions = createServerFn({ method: "POST" })
     scored.sort((a, b) => b.priority - a.priority);
     return { actions: scored.slice(0, data.limit ?? 12) };
   });
+
+// ---------------- Striking Distance Keywords ----------------
+// Aggregates GSC last-28d data into keyword/page pairs ranking in positions
+// 4-15 with material impressions — the highest-ROI "page-1 push" surface.
+// Estimated uplift uses a simple CTR curve: pos 3 ≈ 10%, pos 1 ≈ 30%.
+
+const strikingInput = z.object({
+  organizationId: z.string().uuid(),
+  siteId: z.string().uuid().optional(),
+  limit: z.number().int().min(1).max(50).optional(),
+});
+
+type StrikingKeyword = {
+  query: string;
+  page: string;
+  site_id: string;
+  site_name: string | null;
+  impressions: number;
+  clicks: number;
+  position: number;
+  current_ctr: number;
+  uplift_clicks: number;
+};
+
+// Standard organic CTR curve (rounded, AWR/Advanced Web Ranking 2023).
+const CTR_CURVE: Record<number, number> = {
+  1: 0.3, 2: 0.16, 3: 0.1, 4: 0.07, 5: 0.05,
+  6: 0.04, 7: 0.032, 8: 0.026, 9: 0.022, 10: 0.019,
+};
+function ctrAt(pos: number): number {
+  const p = Math.max(1, Math.min(10, Math.round(pos)));
+  return CTR_CURVE[p] ?? 0.01;
+}
+
+export const getStrikingDistanceKeywords = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => strikingInput.parse(i))
+  .handler(async ({ data, context }): Promise<{ keywords: StrikingKeyword[] }> => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+
+    const since = new Date();
+    since.setDate(since.getDate() - 28);
+    const sinceStr = since.toISOString().slice(0, 10);
+
+    let q = supabase
+      .from("search_console_daily")
+      .select("site_id,page,query,clicks,impressions,position")
+      .eq("organization_id", data.organizationId)
+      .gte("date", sinceStr)
+      .not("query", "is", null)
+      .not("page", "is", null)
+      .limit(50000);
+    if (data.siteId) q = q.eq("site_id", data.siteId);
+    const { data: rows, error } = await q;
+    if (error) throw error;
+    if (!rows || rows.length === 0) return { keywords: [] };
+
+    type Agg = {
+      site_id: string;
+      query: string;
+      page: string;
+      clicks: number;
+      impressions: number;
+      posWeighted: number;
+    };
+    const map = new Map<string, Agg>();
+    for (const r of rows) {
+      if (!r.query || !r.page) continue;
+      const key = `${r.site_id}\u0000${r.query}\u0000${r.page}`;
+      const a = map.get(key) ?? {
+        site_id: r.site_id,
+        query: r.query,
+        page: r.page,
+        clicks: 0,
+        impressions: 0,
+        posWeighted: 0,
+      };
+      a.clicks += r.clicks ?? 0;
+      a.impressions += r.impressions ?? 0;
+      a.posWeighted += (r.position ?? 100) * (r.impressions ?? 1);
+      map.set(key, a);
+    }
+
+    const candidates: StrikingKeyword[] = [];
+    for (const a of map.values()) {
+      if (a.impressions < 50) continue;
+      const position = a.posWeighted / Math.max(1, a.impressions);
+      if (position < 3.5 || position > 15.5) continue;
+      const currentCtr = a.clicks / Math.max(1, a.impressions);
+      const targetCtr = ctrAt(Math.max(1, position - 3)); // 3-position lift
+      const uplift = Math.max(0, Math.round((targetCtr - currentCtr) * a.impressions));
+      if (uplift <= 0) continue;
+      candidates.push({
+        query: a.query,
+        page: a.page,
+        site_id: a.site_id,
+        site_name: null,
+        impressions: a.impressions,
+        clicks: a.clicks,
+        position: Math.round(position * 10) / 10,
+        current_ctr: Math.round(currentCtr * 10000) / 100,
+        uplift_clicks: uplift,
+      });
+    }
+
+    candidates.sort((a, b) => b.uplift_clicks - a.uplift_clicks);
+    const top = candidates.slice(0, data.limit ?? 10);
+
+    const siteIds = Array.from(new Set(top.map((k) => k.site_id)));
+    if (siteIds.length > 0) {
+      const { data: sites } = await supabase
+        .from("sites")
+        .select("id,name")
+        .in("id", siteIds);
+      const siteMap = new Map((sites ?? []).map((s) => [s.id, s.name]));
+      for (const k of top) k.site_name = siteMap.get(k.site_id) ?? null;
+    }
+
+    return { keywords: top };
+  });

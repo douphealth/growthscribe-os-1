@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { getSiteHealthScores } from "@/lib/technical.functions";
 import { PrioritizedActionQueue } from "@/components/dashboard/PrioritizedActionQueue";
+import { StrikingDistanceCards } from "@/components/dashboard/StrikingDistanceCards";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -184,50 +185,9 @@ function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Get started</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              {
-                t: "Connect your first WordPress site",
-                to: "/sites",
-                done: (stats?.sites ?? 0) > 0,
-              },
-              { t: "Link Google Search Console & GA4", to: "/integrations", done: false },
-              {
-                t: "Run your first AI content audit",
-                to: "/audits",
-                done: (stats?.audits ?? 0) > 0,
-              },
-              { t: "Generate a topical map", to: "/topical-maps", done: false },
-              {
-                t: "Create your first content brief",
-                to: "/briefs",
-                done: (stats?.briefs ?? 0) > 0,
-              },
-            ].map((step) => (
-              <Link
-                key={step.t}
-                to={step.to}
-                className="flex items-center justify-between rounded-lg border border-border p-3 hover:border-primary/50 transition"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`h-5 w-5 rounded-full border ${step.done ? "bg-primary border-primary" : "border-border"}`}
-                  />
-                  <span
-                    className={`text-sm ${step.done ? "line-through text-muted-foreground" : ""}`}
-                  >
-                    {step.t}
-                  </span>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-2">
+          <StrikingDistanceCards orgId={orgId} />
+        </div>
 
         <Card>
           <CardHeader>
