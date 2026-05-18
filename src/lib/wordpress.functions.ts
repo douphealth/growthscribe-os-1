@@ -642,3 +642,260 @@ export const updateWordpressDraft = createServerFn({ method: "POST" })
     if (!ok) throw new Error(`Update draft failed: HTTP ${res.status}`);
     return { wpPostId: data.wpPostId };
   });
+
+// ---------------------------------------------------------------------------
+// AI-driven WordPress fix preview + apply, with IndexNow ping.
+// ---------------------------------------------------------------------------
+
+type DiffLine = { kind: "ctx" | "add" | "del"; text: string };
+
+function lineDiff(a: string, b: string): DiffLine[] {
+  const A = a.split("\n");
+  const B = b.split("\n");
+  const n = A.length;
+  const m = B.length;
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const out: DiffLine[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (A[i] === B[j]) {
+      out.push({ kind: "ctx", text: A[i] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      out.push({ kind: "del", text: A[i++] });
+    } else {
+      out.push({ kind: "add", text: B[j++] });
+    }
+  }
+  while (i < n) out.push({ kind: "del", text: A[i++] });
+  while (j < m) out.push({ kind: "add", text: B[j++] });
+  return out;
+}
+
+type FixPreviewPayload = {
+  summary: string;
+  rationale: string;
+  newTitle: string | null;
+  newContent: string;
+  changedSections: string[];
+};
+
+export const previewWordpressFix = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) =>
+    orgSite.extend({ recommendationId: z.string().uuid() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+
+    const { data: rec, error: recErr } = await supabase
+      .from("content_recommendations")
+      .select("*")
+      .eq("id", data.recommendationId)
+      .eq("organization_id", data.organizationId)
+      .maybeSingle();
+    if (recErr) throw recErr;
+    if (!rec) throw new Error("Recommendation not found");
+    if (!rec.post_id) throw new Error("Recommendation is not bound to a post");
+
+    const { data: post, error: postErr } = await supabase
+      .from("wordpress_posts")
+      .select("id, wp_post_id, title, url, content_html, content_text")
+      .eq("id", rec.post_id)
+      .maybeSingle();
+    if (postErr) throw postErr;
+    if (!post) throw new Error("Post not found");
+
+    const before = post.content_html ?? "";
+
+    const ai = await callLovableAIStructured<FixPreviewPayload>(
+      "You are an enterprise SEO editor. You rewrite WordPress post HTML to fix a specific issue while preserving voice, structure, and existing internal links. Output valid HTML (no <html>/<body> wrappers). Do NOT remove existing internal links; only add improvements.",
+      [
+        `URL: ${post.url}`,
+        `Title: ${post.title ?? ""}`,
+        `Issue: ${rec.title}`,
+        rec.detail ? `Detail: ${rec.detail}` : "",
+        rec.suggested_action ? `Suggested action: ${rec.suggested_action}` : "",
+        `Category: ${rec.category}`,
+        "",
+        "CURRENT HTML:",
+        before.slice(0, 18000),
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      "propose_fix",
+      {
+        type: "object",
+        properties: {
+          summary: { type: "string", description: "1 sentence what changed" },
+          rationale: { type: "string", description: "Why this fixes the issue" },
+          newTitle: { type: ["string", "null"], description: "New title or null if unchanged" },
+          newContent: { type: "string", description: "Full revised post HTML" },
+          changedSections: {
+            type: "array",
+            items: { type: "string" },
+            description: "Short labels for changed sections",
+          },
+        },
+        required: ["summary", "rationale", "newContent", "changedSections"],
+      },
+    );
+
+    const diff = lineDiff(before, ai.newContent);
+    const stats = diff.reduce(
+      (acc, d) => {
+        if (d.kind === "add") acc.add++;
+        else if (d.kind === "del") acc.del++;
+        return acc;
+      },
+      { add: 0, del: 0 },
+    );
+
+    return {
+      recommendationId: rec.id,
+      postId: post.id,
+      wpPostId: post.wp_post_id,
+      url: post.url,
+      before,
+      beforeTitle: post.title,
+      afterTitle: ai.newTitle ?? post.title,
+      after: ai.newContent,
+      diff,
+      stats,
+      summary: ai.summary,
+      rationale: ai.rationale,
+      changedSections: ai.changedSections,
+    };
+  });
+
+export const applyWordpressFix = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) =>
+    orgSite
+      .extend({
+        recommendationId: z.string().uuid(),
+        wpPostId: z.number().int().positive(),
+        content: z.string().min(1),
+        title: z.string().max(300).optional(),
+        submitIndexNow: z.boolean().optional(),
+        indexNowKey: z.string().min(8).max(128).optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+    const conn = await getConnection(supabase, data.organizationId, data.siteId);
+    if (!conn) throw new Error("WordPress is not connected for this site");
+
+    const res = await fetch(`${conn.url}/wp-json/wp/v2/posts/${data.wpPostId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader(conn.username, conn.appPassword),
+      },
+      body: JSON.stringify({
+        title: data.title,
+        content: data.content,
+      }),
+    });
+    if (!res.ok) {
+      await audit(supabase, userId, data.organizationId, "wp.fix.apply.error", data.siteId, {
+        rec_id: data.recommendationId,
+        wp_id: data.wpPostId,
+        status: res.status,
+      } as Json);
+      throw new Error(`WordPress update failed: HTTP ${res.status}`);
+    }
+    const body = (await res.json().catch(() => null)) as WpItem | null;
+    const link = body?.link ?? null;
+
+    await supabase
+      .from("wordpress_posts")
+      .update({
+        title: data.title ?? null,
+        content_html: data.content,
+        content_text: stripHtml(data.content),
+        word_count: wordCount(stripHtml(data.content)),
+        modified_at: new Date().toISOString(),
+        synced_at: new Date().toISOString(),
+      })
+      .eq("organization_id", data.organizationId)
+      .eq("site_id", data.siteId)
+      .eq("wp_post_id", data.wpPostId);
+
+    await supabase
+      .from("content_recommendations")
+      .update({ status: "done" })
+      .eq("id", data.recommendationId)
+      .eq("organization_id", data.organizationId);
+
+    let indexNow: { ok: boolean; status?: number; detail?: string } | null = null;
+    if (data.submitIndexNow && link && data.indexNowKey) {
+      try {
+        const host = new URL(link).host;
+        const ixn = await fetch("https://api.indexnow.org/IndexNow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            host,
+            key: data.indexNowKey,
+            keyLocation: `https://${host}/${data.indexNowKey}.txt`,
+            urlList: [link],
+          }),
+        });
+        indexNow = { ok: ixn.ok, status: ixn.status };
+      } catch (e) {
+        indexNow = { ok: false, detail: (e as Error).message };
+      }
+    }
+
+    await audit(supabase, userId, data.organizationId, "wp.fix.apply", data.siteId, {
+      rec_id: data.recommendationId,
+      wp_id: data.wpPostId,
+      link,
+      indexNow,
+    } as Json);
+
+    return { ok: true, link, indexNow };
+  });
+
+export const submitIndexNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) =>
+    orgSite
+      .extend({
+        urls: z.array(z.string().url()).min(1).max(10000),
+        key: z.string().min(8).max(128),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+    const host = new URL(data.urls[0]).host;
+    const res = await fetch("https://api.indexnow.org/IndexNow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        host,
+        key: data.key,
+        keyLocation: `https://${host}/${data.key}.txt`,
+        urlList: data.urls,
+      }),
+    });
+    await audit(supabase, userId, data.organizationId, "indexnow.submit", data.siteId, {
+      host,
+      count: data.urls.length,
+      status: res.status,
+    } as Json);
+    return { ok: res.ok, status: res.status, host, count: data.urls.length };
+  });
