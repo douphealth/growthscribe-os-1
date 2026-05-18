@@ -275,3 +275,121 @@ export const updateRecommendationStatus = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+// ---------------- Prioritized Action Queue ----------------
+// Surfaces a single ranked list across all sites in the org, scored by
+// (impact x confidence) / effort. Used on the dashboard.
+
+const queueInput = z.object({
+  organizationId: z.string().uuid(),
+  limit: z.number().int().min(1).max(50).optional(),
+});
+
+type PrioritizedAction = {
+  id: string;
+  site_id: string;
+  site_name: string | null;
+  post_id: string | null;
+  post_title: string | null;
+  post_url: string | null;
+  category: string;
+  severity: string;
+  title: string;
+  detail: string | null;
+  suggested_action: string | null;
+  status: string;
+  impact: number;
+  confidence: number;
+  effort: number;
+  priority: number;
+  created_at: string;
+};
+
+// Heuristics: impact based on category (revenue proximity), confidence based
+// on severity, effort based on category (refresh < expand < merge).
+const IMPACT: Record<string, number> = {
+  "striking-distance": 95,
+  refresh: 80,
+  expand: 75,
+  "internal-link": 60,
+  "merge-or-prune": 45,
+  technical: 70,
+  performance: 65,
+  aeo: 55,
+  geo: 50,
+};
+const EFFORT: Record<string, number> = {
+  "striking-distance": 2,
+  "internal-link": 2,
+  refresh: 3,
+  technical: 3,
+  performance: 4,
+  expand: 5,
+  "merge-or-prune": 5,
+  aeo: 3,
+  geo: 3,
+};
+const CONFIDENCE: Record<string, number> = { high: 90, medium: 70, low: 50 };
+
+export const getPrioritizedActions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => queueInput.parse(i))
+  .handler(async ({ data, context }): Promise<{ actions: PrioritizedAction[] }> => {
+    const { supabase, userId } = context;
+    await assertMember(supabase, userId, data.organizationId);
+
+    const { data: recs, error } = await supabase
+      .from("content_recommendations")
+      .select("id,site_id,post_id,category,severity,title,detail,suggested_action,status,created_at")
+      .eq("organization_id", data.organizationId)
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    if (!recs || recs.length === 0) return { actions: [] };
+
+    const siteIds = Array.from(new Set(recs.map((r) => r.site_id)));
+    const postIds = Array.from(
+      new Set(recs.map((r) => r.post_id).filter((x): x is string => !!x)),
+    );
+    const [{ data: sites }, { data: posts }] = await Promise.all([
+      supabase.from("sites").select("id,name").in("id", siteIds),
+      postIds.length
+        ? supabase.from("wordpress_posts").select("id,title,url").in("id", postIds)
+        : Promise.resolve({ data: [] as { id: string; title: string | null; url: string | null }[] }),
+    ]);
+    const siteMap = new Map((sites ?? []).map((s) => [s.id, s.name]));
+    const postMap = new Map(
+      (posts ?? []).map((p) => [p.id, { title: p.title, url: p.url }]),
+    );
+
+    const scored: PrioritizedAction[] = recs.map((r) => {
+      const impact = IMPACT[r.category] ?? 50;
+      const confidence = CONFIDENCE[r.severity] ?? 60;
+      const effort = EFFORT[r.category] ?? 3;
+      const priority = Math.round((impact * confidence) / effort);
+      const post = r.post_id ? postMap.get(r.post_id) : undefined;
+      return {
+        id: r.id,
+        site_id: r.site_id,
+        site_name: siteMap.get(r.site_id) ?? null,
+        post_id: r.post_id,
+        post_title: post?.title ?? null,
+        post_url: post?.url ?? null,
+        category: r.category,
+        severity: r.severity,
+        title: r.title,
+        detail: r.detail,
+        suggested_action: r.suggested_action,
+        status: r.status,
+        impact,
+        confidence,
+        effort,
+        priority,
+        created_at: r.created_at,
+      };
+    });
+
+    scored.sort((a, b) => b.priority - a.priority);
+    return { actions: scored.slice(0, data.limit ?? 12) };
+  });
