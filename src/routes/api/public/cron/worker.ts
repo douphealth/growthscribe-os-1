@@ -16,6 +16,7 @@ import {
   runAiVisibility,
   runGscImport,
   runGa4Import,
+  runVitalsRefresh,
   type JobRow,
 } from "@/lib/worker-jobs.server";
 
@@ -147,6 +148,9 @@ async function dispatch(
       return runGscImport(admin, job);
     case "ga4_import":
       return runGa4Import(admin, job);
+    case "vitals.refresh":
+    case "vitals_refresh":
+      return runVitalsRefresh(admin, job);
     default:
       throw new Error(`Unknown job_type: ${job.job_type}`);
   }
