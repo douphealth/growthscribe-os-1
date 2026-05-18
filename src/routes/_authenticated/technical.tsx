@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Gauge, Wand2, ShieldCheck, CheckCircle2, Link2, Image as ImageIcon } from "lucide-react";
+import { ActiveJobsBanner } from "@/components/jobs/ActiveJobsBanner";
 import {
   runTechnicalScan,
   previewWordpressFix,
@@ -386,6 +387,19 @@ function TechnicalPage() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {siteId && (
+        <div className="mb-4">
+          <ActiveJobsBanner
+            organizationId={orgId}
+            siteId={siteId}
+            invalidateOnSuccess={[
+              ["technical-recs", orgId, siteId],
+              ["internal-link-opps", orgId, siteId],
+            ]}
+          />
+        </div>
       )}
 
       {siteId && (linksQ.data?.length ?? 0) > 0 && (
