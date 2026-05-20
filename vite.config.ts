@@ -16,7 +16,7 @@ export default defineConfig({
     define: {
       "import.meta.env.VITE_SUPABASE_URL": JSON.stringify("https://lsuddojjtsfbucrxpndc.supabase.co"),
       "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6ImxzdWRkb2pqdHNmYnVjcnhwbmRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ2MzEsImV4cCI6MjA5NDMyMDYzMX0.SJZkeN27Ofy_cfc9lNP4lhxE3N6GTPh_8RKgLfmFV28",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzdWRkb2pqdHNmYnVjcnhwbmRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NDQ2MzEsImV4cCI6MjA5NDMyMDYzMX0.SJZkeN27Ofy_cfc9lNP4lhxE3N6GTPh_8RKgLfmFV28",
       ),
       "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify("lsuddojjtsfbucrxpndc"),
     },
