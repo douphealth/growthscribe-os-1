@@ -17,6 +17,7 @@ import {
   runGscImport,
   runGa4Import,
   runVitalsRefresh,
+  runCrawlSite,
   type JobRow,
 } from "@/lib/worker-jobs.server";
 
@@ -153,6 +154,9 @@ async function dispatch(
     case "vitals.refresh":
     case "vitals_refresh":
       return runVitalsRefresh(admin, job);
+    case "crawl.site":
+    case "crawl_site":
+      return runCrawlSite(admin, job);
     default:
       throw new Error(`Unknown job_type: ${job.job_type}`);
   }
