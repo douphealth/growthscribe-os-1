@@ -319,6 +319,66 @@ export type Database = {
           },
         ]
       }
+      competitor_pages: {
+        Row: {
+          analyzed_at: string
+          analyzed_by: string
+          competitor_domain: string
+          created_at: string
+          external_links_count: number | null
+          h1: string | null
+          headings: Json
+          id: string
+          internal_links_count: number | null
+          meta_description: string | null
+          organization_id: string
+          schema_types: Json
+          signals: Json
+          site_id: string
+          title: string | null
+          url: string
+          word_count: number | null
+        }
+        Insert: {
+          analyzed_at?: string
+          analyzed_by: string
+          competitor_domain: string
+          created_at?: string
+          external_links_count?: number | null
+          h1?: string | null
+          headings?: Json
+          id?: string
+          internal_links_count?: number | null
+          meta_description?: string | null
+          organization_id: string
+          schema_types?: Json
+          signals?: Json
+          site_id: string
+          title?: string | null
+          url: string
+          word_count?: number | null
+        }
+        Update: {
+          analyzed_at?: string
+          analyzed_by?: string
+          competitor_domain?: string
+          created_at?: string
+          external_links_count?: number | null
+          h1?: string | null
+          headings?: Json
+          id?: string
+          internal_links_count?: number | null
+          meta_description?: string | null
+          organization_id?: string
+          schema_types?: Json
+          signals?: Json
+          site_id?: string
+          title?: string | null
+          url?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       content_audits: {
         Row: {
           aeo_score: number | null
