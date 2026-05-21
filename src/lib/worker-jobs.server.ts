@@ -567,9 +567,110 @@ export async function runGscImport(admin: Admin, job: JobRow) {
   if (!conn || conn.status !== "connected") {
     throw new Error("Google Search Console connector not connected for this site");
   }
-  // Daily pull is handled by /api/public/cron/gsc-pull. Trigger it via an
-  // immediate marker so users see fresh data on demand.
-  return { ok: true, note: "GSC ingestion runs daily via cron; data refresh queued" };
+  const cfg = (conn.config ?? {}) as Record<string, unknown>;
+  const property = typeof cfg.property === "string" ? cfg.property : null;
+  if (!property) throw new Error("GSC connection is missing its `property` config");
+
+  const lovable = process.env.LOVABLE_API_KEY;
+  const gsc = process.env.GOOGLE_SEARCH_CONSOLE_API_KEY;
+  if (!lovable || !gsc) throw new Error("GSC connector secrets are not configured");
+
+  const payload = (job.payload as { days?: number }) ?? {};
+  const days = Math.min(28, Math.max(1, Number(payload.days ?? 7)));
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - days);
+  const ymd = (d: Date) => d.toISOString().slice(0, 10);
+  const encoded = encodeURIComponent(property);
+
+  // Idempotent: drop the rolling window before re-inserting.
+  await admin
+    .from("search_console_daily")
+    .delete()
+    .eq("site_id", job.site_id)
+    .eq("organization_id", job.organization_id)
+    .gte("date", ymd(start));
+
+  const ROW_LIMIT = 5000;
+  let total = 0;
+  let startRow = 0;
+  while (true) {
+    const res = await fetch(
+      `https://connector-gateway.lovable.dev/google_search_console/webmasters/v3/sites/${encoded}/searchAnalytics/query`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovable}`,
+          "X-Connection-Api-Key": gsc,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: ymd(start),
+          endDate: ymd(end),
+          dimensions: ["date", "query", "page"],
+          rowLimit: ROW_LIMIT,
+          startRow,
+        }),
+      },
+    );
+    if (!res.ok) throw new Error(`GSC ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const json = (await res.json()) as {
+      rows?: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }[];
+    };
+    const rows = json.rows ?? [];
+    if (rows.length === 0) break;
+    const inserts = rows.map((r) => ({
+      organization_id: job.organization_id,
+      site_id: job.site_id!,
+      date: r.keys[0],
+      query: r.keys[1] ?? null,
+      page: r.keys[2] ?? null,
+      clicks: Math.round(r.clicks ?? 0),
+      impressions: Math.round(r.impressions ?? 0),
+      ctr: r.ctr ?? null,
+      position: r.position ?? null,
+    }));
+    for (let i = 0; i < inserts.length; i += 500) {
+      const { error } = await admin.from("search_console_daily").insert(inserts.slice(i, i + 500));
+      if (error) throw error;
+    }
+    total += rows.length;
+    if (rows.length < ROW_LIMIT) break;
+    startRow += ROW_LIMIT;
+    if (startRow > 25000) break;
+  }
+
+  // Refresh 28d aggregates on the site row.
+  const since = new Date();
+  since.setDate(since.getDate() - 28);
+  const { data: agg } = await admin
+    .from("search_console_daily")
+    .select("clicks,impressions")
+    .eq("site_id", job.site_id)
+    .gte("date", ymd(since));
+  const totals = (agg ?? []).reduce(
+    (a, r) => ({
+      clicks: a.clicks + (r.clicks ?? 0),
+      impressions: a.impressions + (r.impressions ?? 0),
+    }),
+    { clicks: 0, impressions: 0 },
+  );
+  await admin
+    .from("sites")
+    .update({
+      monthly_clicks: totals.clicks,
+      monthly_impressions: totals.impressions,
+      last_synced_at: new Date().toISOString(),
+    })
+    .eq("id", job.site_id);
+  await admin
+    .from("integration_connections")
+    .update({ last_synced_at: new Date().toISOString(), last_error: null })
+    .eq("organization_id", job.organization_id)
+    .eq("site_id", job.site_id)
+    .eq("provider", "gsc");
+
+  return { rows: total, days, ...totals };
 }
 
 export async function runGa4Import(admin: Admin, job: JobRow) {
