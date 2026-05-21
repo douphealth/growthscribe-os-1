@@ -1564,6 +1564,79 @@ export type Database = {
           },
         ]
       }
+      usage_counters: {
+        Row: {
+          event_type: string
+          id: string
+          organization_id: string
+          period_month: string
+          total_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          organization_id: string
+          period_month: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          organization_id?: string
+          period_month?: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_counters_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          organization_id: string
+          quantity: number
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          organization_id: string
+          quantity?: number
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -19,6 +19,10 @@ import {
   Bot,
   Wrench,
   CheckCircle2,
+  ChevronDown,
+  Telescope,
+  Rocket,
+  Cog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +36,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/lib/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -45,30 +50,50 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const sections = [
+// 5 outcome-led sections — collapsible, defaults open when active route lives inside
+const sections: Array<{
+  label: string;
+  icon: typeof LayoutDashboard;
+  items: Array<{ title: string; url: string; icon: typeof LayoutDashboard; adminOnly?: boolean }>;
+}> = [
   {
-    label: "Workspace",
+    label: "Overview",
+    icon: LayoutDashboard,
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "Sites", url: "/sites", icon: Globe },
     ],
   },
   {
-    label: "Growth Engine",
+    label: "Discover",
+    icon: Telescope,
     items: [
       { title: "Content Inventory", url: "/content-inventory", icon: Library },
       { title: "Content Audits", url: "/audits", icon: FileSearch },
-      { title: "Recommendations", url: "/recommendations", icon: Lightbulb },
       { title: "Topical Maps", url: "/topical-maps", icon: Network },
-      { title: "Content Briefs", url: "/briefs", icon: FileText },
-      { title: "Tasks", url: "/tasks", icon: ListTodo },
       { title: "AI Visibility", url: "/ai-visibility", icon: Bot },
-      { title: "Technical SEO", url: "/technical", icon: Wrench },
-      { title: "Approvals", url: "/approvals", icon: CheckCircle2 },
     ],
   },
   {
-    label: "Admin",
+    label: "Plan",
+    icon: Lightbulb,
+    items: [
+      { title: "Recommendations", url: "/recommendations", icon: Lightbulb },
+      { title: "Content Briefs", url: "/briefs", icon: FileText },
+      { title: "Tasks", url: "/tasks", icon: ListTodo },
+    ],
+  },
+  {
+    label: "Ship",
+    icon: Rocket,
+    items: [
+      { title: "Approvals", url: "/approvals", icon: CheckCircle2 },
+      { title: "Technical SEO", url: "/technical", icon: Wrench },
+    ],
+  },
+  {
+    label: "Operate",
+    icon: Cog,
     items: [
       { title: "Integrations", url: "/integrations", icon: Plug },
       { title: "Audit Logs", url: "/audit-logs", icon: ScrollText, adminOnly: true },
@@ -122,32 +147,49 @@ export function AppSidebar() {
         </DropdownMenu>
       </SidebarHeader>
       <SidebarContent>
-        {sections.map((section) => (
-          <SidebarGroup key={section.label}>
-            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {section.items
-                  .filter((i) => !i.adminOnly || isAdmin)
-                  .map((item) => {
-                    const active =
-                      location.pathname === item.url ||
-                      location.pathname.startsWith(item.url + "/");
-                    return (
-                      <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild isActive={active}>
-                          <Link to={item.url}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {sections.map((section) => {
+          const visibleItems = section.items.filter((i) => !i.adminOnly || isAdmin);
+          if (visibleItems.length === 0) return null;
+          const sectionActive = visibleItems.some(
+            (i) =>
+              location.pathname === i.url ||
+              location.pathname.startsWith(i.url + "/"),
+          );
+          return (
+            <Collapsible key={section.label} defaultOpen={sectionActive} className="group/collapsible">
+              <SidebarGroup>
+                <CollapsibleTrigger asChild>
+                  <SidebarGroupLabel className="flex w-full cursor-pointer items-center gap-2 hover:text-foreground">
+                    <section.icon className="h-3.5 w-3.5 opacity-70" />
+                    <span className="flex-1 text-left">{section.label}</span>
+                    <ChevronDown className="h-3 w-3 transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
+                  </SidebarGroupLabel>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {visibleItems.map((item) => {
+                        const active =
+                          location.pathname === item.url ||
+                          location.pathname.startsWith(item.url + "/");
+                        return (
+                          <SidebarMenuItem key={item.url}>
+                            <SidebarMenuButton asChild isActive={active}>
+                              <Link to={item.url}>
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      })}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         <div className="flex items-center gap-2 p-2">
