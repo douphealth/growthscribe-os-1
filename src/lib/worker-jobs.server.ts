@@ -173,10 +173,27 @@ export async function runWpVerify(admin: Admin, job: JobRow) {
   const probe = `${conn.url}/wp-json/wp/v2/users/me?context=edit`;
   let ok = false;
   let detail: string | null = null;
+  let detectedPlugin: string | null = null;
   try {
     const r = await fetch(probe, { headers: { Authorization: wpAuthHeader(conn) } });
     ok = r.ok;
     if (!ok) detail = `HTTP ${r.status}`;
+    // Detect SEO plugin via /wp-json namespaces
+    try {
+      const root = await fetch(`${conn.url}/wp-json`, {
+        headers: { Authorization: wpAuthHeader(conn) },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (root.ok) {
+        const meta = (await root.json()) as { namespaces?: string[] };
+        const ns = (meta.namespaces ?? []).join(" ").toLowerCase();
+        if (ns.includes("yoast")) detectedPlugin = "yoast";
+        else if (ns.includes("rankmath") || ns.includes("rank-math")) detectedPlugin = "rankmath";
+        else if (ns.includes("aioseo")) detectedPlugin = "aioseo";
+      }
+    } catch {
+      // best-effort
+    }
   } catch (e) {
     detail = (e as Error).message;
   }
@@ -192,11 +209,14 @@ export async function runWpVerify(admin: Admin, job: JobRow) {
     .eq("provider", "wordpress");
   await admin
     .from("sites")
-    .update({ status: ok ? "connected" : "disconnected" })
+    .update({
+      status: ok ? "connected" : "disconnected",
+      detected_seo_plugin: detectedPlugin,
+    })
     .eq("id", job.site_id)
     .eq("organization_id", job.organization_id);
   if (!ok) throw new Error(`Verify failed: ${detail ?? "unknown"}`);
-  return { ok, detail };
+  return { ok, detail, detectedSeoPlugin: detectedPlugin };
 }
 
 // ---------- job: wp_sync ----------
