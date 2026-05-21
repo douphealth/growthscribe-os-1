@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { getWpConnection, wpAuthHeader } from "./wordpress.server";
-import { scoreContent } from "./content-scoring";
+import { scoreContent, scoreBreakdowns } from "./content-scoring";
 import { callLovableAIStructured } from "./ai-gateway";
 
 type Admin = SupabaseClient<Database>;
