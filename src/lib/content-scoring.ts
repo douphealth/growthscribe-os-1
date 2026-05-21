@@ -29,6 +29,28 @@ export type ScoreOutput = {
   geo_score: number;
 };
 
+export type ScoreDimension =
+  | "technical_seo"
+  | "content_quality"
+  | "eeat"
+  | "aeo"
+  | "geo"
+  | "topical_authority"
+  | "internal_link"
+  | "revenue_opportunity"
+  | "content_decay"
+  | "growth_opportunity";
+
+export type ScoreBreakdown = {
+  score_type: ScoreDimension;
+  score: number;
+  explanation: string;
+  evidence: Record<string, unknown>;
+  recommended_actions: string[];
+  estimated_impact: "low" | "medium" | "high";
+  confidence: "low" | "medium" | "high";
+};
+
 const QUESTION_WORDS = /\b(what|how|why|when|where|which|who|is|are|can|should|does|do)\b/i;
 
 export function scoreContent(input: ScoreInput): ScoreOutput {
@@ -144,4 +166,215 @@ export function scoreContent(input: ScoreInput): ScoreOutput {
     aeo_score: clamp(aeo),
     geo_score: clamp(geo),
   };
+}
+
+/**
+ * Produce an array of explainable score breakdowns suitable for persisting to
+ * `score_breakdowns`. Built on the same signals as `scoreContent` but each
+ * dimension carries its own evidence + recommended actions + confidence.
+ */
+export function scoreBreakdowns(input: ScoreInput): ScoreBreakdown[] {
+  const html = input.contentHtml ?? "";
+  const text = input.contentText ?? stripTags(html);
+  const title = (input.title ?? "").trim();
+  const excerpt = (input.excerpt ?? "").trim();
+  const wc = input.wordCount ?? text.split(/\s+/).filter(Boolean).length;
+  const titleLen = title.length;
+  const excerptLen = excerpt.length;
+
+  const h1 = (html.match(/<h1\b/gi) ?? []).length;
+  const h2 = (html.match(/<h2\b/gi) ?? []).length;
+  const h3 = (html.match(/<h3\b/gi) ?? []).length;
+  const headings = h2 + h3;
+  const imgs = html.match(/<img\b[^>]*>/gi) ?? [];
+  const imgsWithAlt = imgs.filter((t) => /\balt\s*=\s*"[^"]+"/i.test(t)).length;
+  const links = html.match(/<a\b[^>]*href=/gi) ?? [];
+  let host = "";
+  try {
+    host = new URL(input.url).hostname.replace(/^www\./, "");
+  } catch {
+    /* ignore */
+  }
+  const internalLinks = host
+    ? (html.match(
+        new RegExp(`<a\\b[^>]*href=["'][^"']*${host.replace(/\./g, "\\.")}`, "gi"),
+      ) ?? []).length
+    : 0;
+  const externalLinks = Math.max(0, links.length - internalLinks);
+  const lists = (html.match(/<(ul|ol)\b/gi) ?? []).length;
+  const tables = (html.match(/<table\b/gi) ?? []).length;
+  const hasSchema = /schema\.org|application\/ld\+json/i.test(html);
+  const hasByline = /author|by\s+[A-Z][a-z]+/i.test(html);
+  const hasStats = /\b\d+(\.\d+)?\s*(%|percent|million|billion|users|customers)\b/i.test(text);
+  const headingMatches = html.match(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi) ?? [];
+  const questionHeadings = headingMatches.filter(
+    (h) => QUESTION_WORDS.test(stripTags(h)) || /\?/.test(h),
+  ).length;
+
+  const base = scoreContent(input);
+
+  const breakdowns: ScoreBreakdown[] = [];
+
+  // 1. Technical SEO
+  {
+    const actions: string[] = [];
+    if (titleLen === 0) actions.push("Add a 50-60 character SEO title");
+    else if (titleLen < 30 || titleLen > 65) actions.push(`Tune title length (currently ${titleLen} chars; target 30-65)`);
+    if (excerptLen === 0) actions.push("Write a 110-160 character meta description");
+    if (h1 > 1) actions.push(`Reduce to one H1 (found ${h1})`);
+    if (headings < 3) actions.push("Add more H2/H3 subheadings for structure");
+    if (imgs.length > 0 && imgsWithAlt / imgs.length < 0.8)
+      actions.push(`Add alt text to images (${imgsWithAlt}/${imgs.length} have alt)`);
+    const score = Math.round((base.seo_score * 0.7) + (titleLen >= 30 && titleLen <= 65 ? 15 : 0) + (excerptLen >= 110 ? 15 : 0));
+    breakdowns.push({
+      score_type: "technical_seo",
+      score: clamp(score),
+      explanation: "Composite of title/meta length, heading hierarchy, image alt coverage, and link density.",
+      evidence: { titleLen, excerptLen, h1, h2, h3, imgs: imgs.length, imgsWithAlt, internalLinks, externalLinks },
+      recommended_actions: actions,
+      estimated_impact: actions.length >= 3 ? "high" : actions.length >= 1 ? "medium" : "low",
+      confidence: "high",
+    });
+  }
+
+  // 2. Content quality
+  {
+    const actions: string[] = [];
+    if (wc < 300) actions.push("Expand content — under 300 words is thin");
+    else if (wc < 800) actions.push("Deepen coverage to 1000+ words for competitive topics");
+    if (headings < 3) actions.push("Break content into more sections");
+    const score =
+      (wc >= 1500 ? 60 : wc >= 800 ? 45 : wc >= 300 ? 25 : 10) +
+      (headings >= 6 ? 25 : headings >= 3 ? 15 : 5) +
+      (lists + tables >= 2 ? 15 : 5);
+    breakdowns.push({
+      score_type: "content_quality",
+      score: clamp(score),
+      explanation: "Word count, structural depth, and use of lists/tables.",
+      evidence: { wordCount: wc, headings, lists, tables },
+      recommended_actions: actions,
+      estimated_impact: wc < 500 ? "high" : "medium",
+      confidence: "high",
+    });
+  }
+
+  // 3. E-E-A-T
+  {
+    const actions: string[] = [];
+    if (!hasByline) actions.push("Add a visible author byline with credentials");
+    if (externalLinks < 2) actions.push("Cite 2+ authoritative external sources");
+    if (!hasStats) actions.push("Include concrete stats or data points");
+    const score =
+      (hasByline ? 30 : 0) +
+      (externalLinks >= 3 ? 30 : externalLinks >= 1 ? 15 : 0) +
+      (hasStats ? 20 : 0) +
+      (hasSchema ? 20 : 0);
+    breakdowns.push({
+      score_type: "eeat",
+      score: clamp(score),
+      explanation: "Author signals, external citations, concrete data, and schema markup.",
+      evidence: { hasByline, externalLinks, hasStats, hasSchema },
+      recommended_actions: actions,
+      estimated_impact: actions.length >= 2 ? "high" : "medium",
+      confidence: "medium",
+    });
+  }
+
+  // 4. AEO
+  {
+    const actions: string[] = [];
+    if (questionHeadings < 3) actions.push("Add 3-5 question-style H2/H3 headings");
+    if (!/faq|frequently asked/i.test(html)) actions.push("Add an FAQ section with FAQPage schema");
+    if (!hasSchema) actions.push("Embed structured data (FAQPage / HowTo / Article)");
+    breakdowns.push({
+      score_type: "aeo",
+      score: base.aeo_score,
+      explanation: "Question headings, FAQ markup, list/table formatting, and snippet-ready paragraphs.",
+      evidence: { questionHeadings, hasFaq: /faq|frequently asked/i.test(html), lists, tables, hasSchema },
+      recommended_actions: actions,
+      estimated_impact: questionHeadings < 1 ? "high" : "medium",
+      confidence: "high",
+    });
+  }
+
+  // 5. GEO (generative engine optimization)
+  {
+    const actions: string[] = [];
+    if (externalLinks < 3) actions.push("Cite more primary sources (3+ external links)");
+    if (!hasStats) actions.push("Add quantitative claims AI engines can quote");
+    if (!/\b(20\d{2})\b/.test(text)) actions.push("Include a recent year marker (freshness)");
+    breakdowns.push({
+      score_type: "geo",
+      score: base.geo_score,
+      explanation: "Citations, freshness markers, statistics, and depth that make pages quotable by LLMs.",
+      evidence: { externalLinks, hasStats, hasSchema, wordCount: wc },
+      recommended_actions: actions,
+      estimated_impact: "medium",
+      confidence: "medium",
+    });
+  }
+
+  // 6. Internal link
+  {
+    const actions: string[] = [];
+    if (internalLinks < 3) actions.push(`Add internal links (currently ${internalLinks}; target 3-8)`);
+    if (internalLinks > 25) actions.push("Trim excessive internal links — may dilute authority");
+    const score =
+      internalLinks >= 5 && internalLinks <= 20
+        ? 90
+        : internalLinks >= 3
+          ? 70
+          : internalLinks >= 1
+            ? 40
+            : 10;
+    breakdowns.push({
+      score_type: "internal_link",
+      score: clamp(score),
+      explanation: "Number of contextual internal links to other pages on this site.",
+      evidence: { internalLinks, externalLinks },
+      recommended_actions: actions,
+      estimated_impact: internalLinks < 2 ? "high" : "low",
+      confidence: "high",
+    });
+  }
+
+  // 7-10. Topical / Revenue / Decay / Growth — v0 signals only, low confidence
+  breakdowns.push({
+    score_type: "topical_authority",
+    score: clamp(Math.min(100, headings * 8 + (wc / 30))),
+    explanation: "Heuristic based on coverage depth — full topical scoring lands in Pass 3.",
+    evidence: { wordCount: wc, headings },
+    recommended_actions: ["Cluster this page under a pillar topic", "Cover adjacent subtopics"],
+    estimated_impact: "medium",
+    confidence: "low",
+  });
+  breakdowns.push({
+    score_type: "revenue_opportunity",
+    score: clamp(50),
+    explanation: "Placeholder — requires GA4 revenue data (Pass 2).",
+    evidence: {},
+    recommended_actions: ["Connect GA4 to unlock revenue-weighted prioritization"],
+    estimated_impact: "medium",
+    confidence: "low",
+  });
+  breakdowns.push({
+    score_type: "content_decay",
+    score: clamp(50),
+    explanation: "Placeholder — requires GSC trend history (Pass 2).",
+    evidence: {},
+    recommended_actions: ["Connect Google Search Console to detect decaying pages"],
+    estimated_impact: "medium",
+    confidence: "low",
+  });
+  breakdowns.push({
+    score_type: "growth_opportunity",
+    score: clamp(Math.round((base.seo_score + base.aeo_score + base.geo_score) / 3)),
+    explanation: "Composite of SEO + AEO + GEO. Refined with GSC striking-distance data in Pass 2.",
+    evidence: { seo: base.seo_score, aeo: base.aeo_score, geo: base.geo_score },
+    recommended_actions: ["Prioritize pages with mid-range scores and rising impressions"],
+    estimated_impact: "high",
+    confidence: "medium",
+  });
+
+  return breakdowns;
 }
