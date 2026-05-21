@@ -805,6 +805,7 @@ export async function runVitalsRefresh(admin: Admin, job: JobRow) {
       .upsert(rows as never, { onConflict: "site_id,url,strategy" });
     if (upErr) throw upErr;
   }
+  if (measured > 0) await recordUsage(admin, job, "vitals.measured", measured);
   return { measured };
 }
 
@@ -935,6 +936,7 @@ export async function runCrawlSite(admin: Admin, job: JobRow) {
     if (error) throw error;
   }
 
+  if (sample.length > 0) await recordUsage(admin, job, "crawl.urls", sample.length);
   return {
     sitemap: sitemapUrl,
     discovered: urls.length,
