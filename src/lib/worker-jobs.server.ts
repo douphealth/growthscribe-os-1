@@ -17,6 +17,26 @@ export type JobRow = {
   created_by: string;
 };
 
+// ---------- usage metering ----------
+// Worker writes via the admin client (service role) so it bypasses RLS.
+// The actor is the user who enqueued the job (job.created_by).
+export async function recordUsage(
+  admin: Admin,
+  job: JobRow,
+  eventType: string,
+  quantity = 1,
+  metadata: Record<string, unknown> = {},
+) {
+  if (!quantity || quantity <= 0) return;
+  await admin.from("usage_events").insert({
+    organization_id: job.organization_id,
+    actor_id: job.created_by,
+    event_type: eventType,
+    quantity,
+    metadata: { job_id: job.id, ...metadata } as never,
+  });
+}
+
 // ---------- shared helpers ----------
 
 function stripHtml(html: string | null | undefined): string {
@@ -382,6 +402,7 @@ export async function runContentAudit(admin: Admin, job: JobRow) {
         recommendations: result.recommendations as unknown as Json,
       })
       .eq("id", payload.auditId);
+    await recordUsage(admin, job, "audit.run", 1, { audit_id: payload.auditId });
     return { auditId: payload.auditId, scores: result };
   } catch (e) {
     const msg = (e as Error).message;
@@ -473,6 +494,7 @@ export async function runBriefGenerate(admin: Admin, job: JobRow) {
       internal_links: result.internal_links as unknown as Json,
     })
     .eq("id", brief.id);
+  await recordUsage(admin, job, "brief.generated", 1, { brief_id: brief.id });
   return { briefId: brief.id, sections: result.outline.length };
 }
 
@@ -549,6 +571,9 @@ export async function runAiVisibility(admin: Admin, job: JobRow) {
     rank,
     citation_url: citation,
     raw_response: { content } as Json,
+  });
+  await recordUsage(admin, job, "ai_visibility.probe", 1, {
+    engine: payload.engine,
   });
   return { appears, rank, citation };
 }
@@ -670,6 +695,7 @@ export async function runGscImport(admin: Admin, job: JobRow) {
     .eq("site_id", job.site_id)
     .eq("provider", "gsc");
 
+  if (total > 0) await recordUsage(admin, job, "gsc.rows_imported", total, { days });
   return { rows: total, days, ...totals };
 }
 
@@ -779,6 +805,7 @@ export async function runVitalsRefresh(admin: Admin, job: JobRow) {
       .upsert(rows as never, { onConflict: "site_id,url,strategy" });
     if (upErr) throw upErr;
   }
+  if (measured > 0) await recordUsage(admin, job, "vitals.measured", measured);
   return { measured };
 }
 
@@ -909,6 +936,7 @@ export async function runCrawlSite(admin: Admin, job: JobRow) {
     if (error) throw error;
   }
 
+  if (sample.length > 0) await recordUsage(admin, job, "crawl.urls", sample.length);
   return {
     sitemap: sitemapUrl,
     discovered: urls.length,

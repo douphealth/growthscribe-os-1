@@ -30,6 +30,40 @@ async function assertMember(supabase: SB, userId: string, organizationId: string
   if (!data) throw new Error("Not a member of this organization");
 }
 
+/**
+ * Enforce the role permission matrix (see docs/permissions.md). `minRole`
+ * is the lowest org_role allowed. Roles are ordered:
+ *   viewer < analyst < editor < admin < owner
+ * Throws if the caller's role is below `minRole`. Always check on
+ * write-capable server functions in addition to RLS.
+ */
+const ROLE_RANK: Record<string, number> = {
+  viewer: 1,
+  analyst: 2,
+  editor: 3,
+  admin: 4,
+  owner: 5,
+};
+export async function assertOrgRole(
+  supabase: SB,
+  userId: string,
+  organizationId: string,
+  minRole: "viewer" | "analyst" | "editor" | "admin" | "owner",
+) {
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Not a member of this organization");
+  const rank = ROLE_RANK[data.role as string] ?? 0;
+  if (rank < ROLE_RANK[minRole]) {
+    throw new Error(`Requires ${minRole} role (you are ${data.role}).`);
+  }
+}
+
 async function audit(
   supabase: SB,
   userId: string,
@@ -792,7 +826,8 @@ export const applyWordpressFix = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await assertMember(supabase, userId, data.organizationId);
+    // Per docs/permissions.md, only editor+ may write to WordPress.
+    await assertOrgRole(supabase, userId, data.organizationId, "editor");
     const conn = await getConnection(supabase, data.organizationId, data.siteId);
     if (!conn) throw new Error("WordPress is not connected for this site");
 
@@ -891,6 +926,15 @@ export const applyWordpressFix = createServerFn({ method: "POST" })
       link,
       indexNow,
     } as Json);
+
+    // Usage metering: count one applied WP write per action (see docs/usage-metering.md).
+    await supabase.from("usage_events").insert({
+      organization_id: data.organizationId,
+      actor_id: userId,
+      event_type: "wp.fix.applied",
+      quantity: 1,
+      metadata: { wp_post_id: data.wpPostId, recommendation_id: data.recommendationId } as Json,
+    });
 
     return { ok: true, link, indexNow };
   });
