@@ -567,9 +567,110 @@ export async function runGscImport(admin: Admin, job: JobRow) {
   if (!conn || conn.status !== "connected") {
     throw new Error("Google Search Console connector not connected for this site");
   }
-  // Daily pull is handled by /api/public/cron/gsc-pull. Trigger it via an
-  // immediate marker so users see fresh data on demand.
-  return { ok: true, note: "GSC ingestion runs daily via cron; data refresh queued" };
+  const cfg = (conn.config ?? {}) as Record<string, unknown>;
+  const property = typeof cfg.property === "string" ? cfg.property : null;
+  if (!property) throw new Error("GSC connection is missing its `property` config");
+
+  const lovable = process.env.LOVABLE_API_KEY;
+  const gsc = process.env.GOOGLE_SEARCH_CONSOLE_API_KEY;
+  if (!lovable || !gsc) throw new Error("GSC connector secrets are not configured");
+
+  const payload = (job.payload as { days?: number }) ?? {};
+  const days = Math.min(28, Math.max(1, Number(payload.days ?? 7)));
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - days);
+  const ymd = (d: Date) => d.toISOString().slice(0, 10);
+  const encoded = encodeURIComponent(property);
+
+  // Idempotent: drop the rolling window before re-inserting.
+  await admin
+    .from("search_console_daily")
+    .delete()
+    .eq("site_id", job.site_id)
+    .eq("organization_id", job.organization_id)
+    .gte("date", ymd(start));
+
+  const ROW_LIMIT = 5000;
+  let total = 0;
+  let startRow = 0;
+  while (true) {
+    const res = await fetch(
+      `https://connector-gateway.lovable.dev/google_search_console/webmasters/v3/sites/${encoded}/searchAnalytics/query`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovable}`,
+          "X-Connection-Api-Key": gsc,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          startDate: ymd(start),
+          endDate: ymd(end),
+          dimensions: ["date", "query", "page"],
+          rowLimit: ROW_LIMIT,
+          startRow,
+        }),
+      },
+    );
+    if (!res.ok) throw new Error(`GSC ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const json = (await res.json()) as {
+      rows?: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }[];
+    };
+    const rows = json.rows ?? [];
+    if (rows.length === 0) break;
+    const inserts = rows.map((r) => ({
+      organization_id: job.organization_id,
+      site_id: job.site_id!,
+      date: r.keys[0],
+      query: r.keys[1] ?? null,
+      page: r.keys[2] ?? null,
+      clicks: Math.round(r.clicks ?? 0),
+      impressions: Math.round(r.impressions ?? 0),
+      ctr: r.ctr ?? null,
+      position: r.position ?? null,
+    }));
+    for (let i = 0; i < inserts.length; i += 500) {
+      const { error } = await admin.from("search_console_daily").insert(inserts.slice(i, i + 500));
+      if (error) throw error;
+    }
+    total += rows.length;
+    if (rows.length < ROW_LIMIT) break;
+    startRow += ROW_LIMIT;
+    if (startRow > 25000) break;
+  }
+
+  // Refresh 28d aggregates on the site row.
+  const since = new Date();
+  since.setDate(since.getDate() - 28);
+  const { data: agg } = await admin
+    .from("search_console_daily")
+    .select("clicks,impressions")
+    .eq("site_id", job.site_id)
+    .gte("date", ymd(since));
+  const totals = (agg ?? []).reduce(
+    (a, r) => ({
+      clicks: a.clicks + (r.clicks ?? 0),
+      impressions: a.impressions + (r.impressions ?? 0),
+    }),
+    { clicks: 0, impressions: 0 },
+  );
+  await admin
+    .from("sites")
+    .update({
+      monthly_clicks: totals.clicks,
+      monthly_impressions: totals.impressions,
+      last_synced_at: new Date().toISOString(),
+    })
+    .eq("id", job.site_id);
+  await admin
+    .from("integration_connections")
+    .update({ last_synced_at: new Date().toISOString(), last_error: null })
+    .eq("organization_id", job.organization_id)
+    .eq("site_id", job.site_id)
+    .eq("provider", "gsc");
+
+  return { rows: total, days, ...totals };
 }
 
 export async function runGa4Import(admin: Admin, job: JobRow) {
@@ -679,4 +780,141 @@ export async function runVitalsRefresh(admin: Admin, job: JobRow) {
     if (upErr) throw upErr;
   }
   return { measured };
+}
+
+// ---------- jobs: crawl.site ----------
+
+/**
+ * Site crawl via sitemap discovery. Fetches /sitemap.xml (and nested sitemaps),
+ * collects URLs, HEAD-checks status, and writes findings for 4xx/5xx + missing
+ * sitemap. Lightweight, no third-party services required.
+ */
+export async function runCrawlSite(admin: Admin, job: JobRow) {
+  if (!job.site_id) throw new Error("crawl.site requires site_id");
+  const { data: site, error: sErr } = await admin
+    .from("sites")
+    .select("url")
+    .eq("id", job.site_id)
+    .maybeSingle();
+  if (sErr) throw sErr;
+  if (!site?.url) throw new Error("Site has no URL configured");
+
+  const payload = (job.payload as { limit?: number }) ?? {};
+  const maxUrls = Math.min(200, Math.max(10, Number(payload.limit ?? 100)));
+  const origin = new URL(site.url).origin;
+
+  async function fetchSitemap(url: string): Promise<string[]> {
+    try {
+      const r = await fetch(url, { headers: { "User-Agent": "GrowthScribe/1.0" } });
+      if (!r.ok) return [];
+      const xml = await r.text();
+      const locs = Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g)).map((m) => m[1].trim());
+      // If this looks like a sitemap index, recurse one level.
+      if (/<sitemapindex/i.test(xml)) {
+        const nested: string[] = [];
+        for (const sm of locs.slice(0, 10)) {
+          nested.push(...(await fetchSitemap(sm)));
+          if (nested.length >= maxUrls * 2) break;
+        }
+        return nested;
+      }
+      return locs;
+    } catch {
+      return [];
+    }
+  }
+
+  const candidates = [
+    `${origin}/sitemap.xml`,
+    `${origin}/sitemap_index.xml`,
+    `${origin}/wp-sitemap.xml`,
+  ];
+  let urls: string[] = [];
+  let sitemapUrl: string | null = null;
+  for (const c of candidates) {
+    const found = await fetchSitemap(c);
+    if (found.length > 0) {
+      urls = found;
+      sitemapUrl = c;
+      break;
+    }
+  }
+
+  // Clear prior crawl findings (idempotent)
+  await admin
+    .from("content_recommendations")
+    .delete()
+    .eq("organization_id", job.organization_id)
+    .eq("site_id", job.site_id)
+    .eq("status", "open")
+    .eq("category", "crawl");
+
+  const findings: Array<Record<string, unknown>> = [];
+
+  if (!sitemapUrl) {
+    findings.push({
+      organization_id: job.organization_id,
+      site_id: job.site_id,
+      category: "crawl",
+      severity: "high",
+      title: "Sitemap not found",
+      detail: `No sitemap.xml found at ${origin}. Search engines rely on sitemaps to discover content quickly.`,
+      suggested_action:
+        "Install a SEO plugin (Yoast, RankMath, AIOSEO) to auto-generate /sitemap.xml or /sitemap_index.xml.",
+      status: "open",
+    });
+  }
+
+  const sample = urls.slice(0, maxUrls);
+  let ok = 0;
+  let broken = 0;
+  for (const u of sample) {
+    try {
+      const r = await fetch(u, { method: "HEAD", redirect: "follow" });
+      if (r.status >= 400) {
+        broken++;
+        findings.push({
+          organization_id: job.organization_id,
+          site_id: job.site_id,
+          category: "crawl",
+          severity: r.status >= 500 ? "high" : "medium",
+          title: `Broken URL (${r.status})`,
+          detail: u,
+          suggested_action:
+            r.status === 404
+              ? "Restore the page or set up a 301 redirect to a relevant URL."
+              : "Investigate server error and fix or redirect.",
+          status: "open",
+        });
+      } else {
+        ok++;
+      }
+    } catch (e) {
+      broken++;
+      findings.push({
+        organization_id: job.organization_id,
+        site_id: job.site_id,
+        category: "crawl",
+        severity: "medium",
+        title: "Unreachable URL",
+        detail: `${u} — ${e instanceof Error ? e.message : String(e)}`,
+        suggested_action: "Verify the URL is publicly accessible.",
+        status: "open",
+      });
+    }
+  }
+
+  if (findings.length > 0) {
+    const { error } = await admin.from("content_recommendations").insert(findings as never);
+    if (error) throw error;
+  }
+
+  return {
+    sitemap: sitemapUrl,
+    discovered: urls.length,
+    checked: sample.length,
+    ok,
+    broken,
+    findings: findings.length,
+  };
 }

@@ -25,7 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Gauge, Wand2, ShieldCheck, CheckCircle2, Link2, Image as ImageIcon } from "lucide-react";
+import { Gauge, Wand2, ShieldCheck, CheckCircle2, Link2, Image as ImageIcon, Globe, Search, Zap } from "lucide-react";
 import { ActiveJobsBanner } from "@/components/jobs/ActiveJobsBanner";
 import {
   runTechnicalScan,
@@ -35,6 +35,7 @@ import {
   bulkApplyWordpressFixes,
   type FixPreview,
 } from "@/lib/technical.functions";
+import { enqueueJob } from "@/lib/jobs.functions";
 import {
   discoverInternalLinks,
   scanImageAlts,
@@ -86,6 +87,7 @@ function TechnicalPage() {
   const scanAlts = useServerFn(scanImageAlts);
   const bulkAlts = useServerFn(bulkApplyImageAlts);
   const applyLink = useServerFn(applyInternalLink);
+  const enqueue = useServerFn(enqueueJob);
 
   const [siteId, setSiteId] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -360,6 +362,40 @@ function TechnicalPage() {
           </Button>
           <Button variant="outline" onClick={onIndexNow} disabled={!siteId}>
             Submit to IndexNow
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              if (!orgId || !siteId) return;
+              await enqueue({ data: { organizationId: orgId, siteId, jobType: "crawl.site", payload: { limit: 100 }, priority: 5 } });
+              toast.success("Site crawl queued — results will appear shortly");
+              qc.invalidateQueries({ queryKey: ["technical-recs"] });
+            }}
+            disabled={!siteId}
+          >
+            <Globe className="mr-1 h-4 w-4" /> Crawl site
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              if (!orgId || !siteId) return;
+              await enqueue({ data: { organizationId: orgId, siteId, jobType: "vitals.refresh", payload: { limit: 10 }, priority: 5 } });
+              toast.success("Core Web Vitals refresh queued");
+            }}
+            disabled={!siteId}
+          >
+            <Zap className="mr-1 h-4 w-4" /> Refresh vitals
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              if (!orgId || !siteId) return;
+              await enqueue({ data: { organizationId: orgId, siteId, jobType: "gsc_import", payload: { days: 7 }, priority: 5 } });
+              toast.success("Search Console pull queued");
+            }}
+            disabled={!siteId}
+          >
+            <Search className="mr-1 h-4 w-4" /> Pull Search Console
           </Button>
         </CardContent>
       </Card>
