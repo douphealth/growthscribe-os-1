@@ -18,8 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Network, Sparkles } from "lucide-react";
+import { Network, Sparkles, Search } from "lucide-react";
 import { generateTopicalMap } from "@/lib/topical.functions";
+import { analyzeCompetitor, listCompetitorPages } from "@/lib/competitor.functions";
+import { Input } from "@/components/ui/input";
 
 type Site = Database["public"]["Tables"]["sites"]["Row"];
 type MapNode = Database["public"]["Tables"]["topical_maps"]["Row"];
@@ -36,6 +38,8 @@ function TopicalMapsPage() {
   const orgId = currentOrg?.id ?? null;
   const qc = useQueryClient();
   const generate = useServerFn(generateTopicalMap);
+  const analyzeFn = useServerFn(analyzeCompetitor);
+  const listCompFn = useServerFn(listCompetitorPages);
 
   const sitesQ = useQuery({
     queryKey: ["sites", orgId],
@@ -53,6 +57,44 @@ function TopicalMapsPage() {
 
   const [siteId, setSiteId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [competitorUrl, setCompetitorUrl] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const competitorsQ = useQuery({
+    queryKey: ["competitor-pages", orgId, siteId],
+    enabled: !!orgId && !!siteId,
+    queryFn: async () => {
+      const res = await listCompFn({ data: { organizationId: orgId!, siteId, limit: 25 } });
+      return res.rows;
+    },
+  });
+
+  const onAnalyze = async () => {
+    if (!orgId || !siteId) {
+      toast.error("Pick a site first");
+      return;
+    }
+    if (!competitorUrl.trim()) {
+      toast.error("Enter a competitor URL");
+      return;
+    }
+    setAnalyzing(true);
+    const t = toast.loading("Analyzing competitor page…");
+    try {
+      const res = await analyzeFn({
+        data: { organizationId: orgId, siteId, url: competitorUrl.trim() },
+      });
+      toast.success(`Analyzed · ${res.wordCount} words · ${res.schemaTypes.length} schemas`, {
+        id: t,
+      });
+      setCompetitorUrl("");
+      qc.invalidateQueries({ queryKey: ["competitor-pages", orgId, siteId] });
+    } catch (err) {
+      toast.error((err as Error).message, { id: t });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const mapQ = useQuery({
     queryKey: ["topical-maps", orgId, siteId],
@@ -185,6 +227,62 @@ function TopicalMapsPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {siteId && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Search className="h-4 w-4" /> Competitor analysis
+            </CardTitle>
+            <CardDescription>
+              Paste a competitor URL to extract headings, schema markup, word count, and SEO
+              signals. Use insights to inform briefs and topical map gaps.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="https://competitor.com/article"
+                value={competitorUrl}
+                onChange={(e) => setCompetitorUrl(e.target.value)}
+                disabled={analyzing}
+              />
+              <Button onClick={onAnalyze} disabled={analyzing || !competitorUrl.trim()}>
+                {analyzing ? "Analyzing…" : "Analyze"}
+              </Button>
+            </div>
+            {competitorsQ.data && competitorsQ.data.length > 0 && (
+              <div className="space-y-2">
+                {competitorsQ.data.map((c) => {
+                  const schemas = Array.isArray(c.schema_types) ? (c.schema_types as string[]) : [];
+                  return (
+                    <div
+                      key={c.id}
+                      className="rounded-md border p-3 text-sm flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <a
+                          href={c.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium truncate hover:underline"
+                        >
+                          {c.title ?? c.url}
+                        </a>
+                        <Badge variant="outline">{c.competitor_domain}</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span>{c.word_count ?? 0} words</span>
+                        {schemas.length > 0 && <span>· schemas: {schemas.join(", ")}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </>
   );
