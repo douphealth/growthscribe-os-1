@@ -244,6 +244,48 @@ export async function runWpSync(admin: Admin, job: JobRow) {
           .upsert(rows, { onConflict: "site_id,wp_post_id,post_type" });
         if (error) throw error;
         synced += rows.length;
+        // Persist explainable score breakdowns
+        try {
+          const { data: persisted } = await admin
+            .from("wordpress_posts")
+            .select("id, title, excerpt, content_html, content_text, word_count, url")
+            .eq("organization_id", job.organization_id)
+            .eq("site_id", job.site_id!)
+            .in(
+              "wp_post_id",
+              batch.map((b) => b.id),
+            );
+          const breakdownRows = (persisted ?? []).flatMap((p) =>
+            scoreBreakdowns({
+              title: p.title,
+              excerpt: p.excerpt,
+              contentHtml: p.content_html,
+              contentText: p.content_text,
+              wordCount: p.word_count,
+              url: p.url,
+            }).map((b) => ({
+              organization_id: job.organization_id,
+              site_id: job.site_id!,
+              post_id: p.id,
+              url: p.url,
+              score_type: b.score_type,
+              score: b.score,
+              explanation: b.explanation,
+              evidence: b.evidence as unknown as Json,
+              recommended_actions: b.recommended_actions as unknown as Json,
+              estimated_impact: b.estimated_impact,
+              confidence: b.confidence,
+              computed_at: new Date().toISOString(),
+            })),
+          );
+          if (breakdownRows.length > 0) {
+            await admin
+              .from("score_breakdowns")
+              .upsert(breakdownRows, { onConflict: "post_id,score_type" });
+          }
+        } catch (be) {
+          warnings.push(`score breakdowns: ${(be as Error).message}`);
+        }
         await admin
           .from("background_jobs")
           .update({ items_processed: synced })
