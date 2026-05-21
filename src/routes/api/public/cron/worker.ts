@@ -27,6 +27,8 @@ import {
 
 const MAX_JOBS_PER_TICK = 5;
 const JOB_TIMEOUT_MS = 90_000;
+const MAX_RUNNING_PER_ORG = 3;
+const BACKOFF_BASE_SECONDS = 30;
 
 type Admin = ReturnType<typeof createClient<Database>>;
 
@@ -188,8 +190,10 @@ export const Route = createFileRoute("/api/public/cron/worker")({
         await admin
           .from("background_jobs")
           .update({
-            status: "failed",
-            error: "timeout: worker did not finish within 10 minutes",
+            status: "queued",
+            locked_at: null,
+            locked_by: null,
+            last_error: "reaped: worker did not finish within 10 minutes",
             finished_at: new Date().toISOString(),
           })
           .eq("status", "running")
@@ -197,25 +201,49 @@ export const Route = createFileRoute("/api/public/cron/worker")({
 
         const { data: candidates, error: cErr } = await admin
           .from("background_jobs")
-          .select("id, job_type, organization_id, site_id, payload, created_by")
+          .select("id, job_type, organization_id, site_id, payload, created_by, retry_count, max_retries")
           .eq("status", "queued")
-          .order("created_at", { ascending: true })
+          .lte("next_run_at", new Date().toISOString())
+          .order("priority", { ascending: false })
+          .order("next_run_at", { ascending: true })
           .limit(MAX_JOBS_PER_TICK);
         if (cErr) {
           return new Response(JSON.stringify({ error: cErr.message }), { status: 500 });
         }
 
         const results: Array<{ id: string; status: string; error?: string }> = [];
+        const workerId = `worker-${crypto.randomUUID().slice(0, 8)}`;
         for (const c of candidates ?? []) {
+          // Per-org concurrency cap.
+          const { count: runningForOrg } = await admin
+            .from("background_jobs")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", c.organization_id)
+            .eq("status", "running");
+          if ((runningForOrg ?? 0) >= MAX_RUNNING_PER_ORG) continue;
+
           // Atomic claim: only succeeds if still queued.
           const { data: claimed, error: clErr } = await admin
             .from("background_jobs")
-            .update({ status: "running", started_at: new Date().toISOString() })
+            .update({
+              status: "running",
+              started_at: new Date().toISOString(),
+              locked_at: new Date().toISOString(),
+              locked_by: workerId,
+            })
             .eq("id", c.id)
             .eq("status", "queued")
             .select("id")
             .maybeSingle();
           if (clErr || !claimed) continue;
+
+          await admin.from("job_logs").insert({
+            job_id: c.id,
+            organization_id: c.organization_id,
+            level: "info",
+            message: `Job started (attempt ${c.retry_count + 1}/${c.max_retries + 1})`,
+            metadata: { job_type: c.job_type, worker_id: workerId },
+          });
 
           try {
             const result = await withTimeout(dispatch(admin, c), JOB_TIMEOUT_MS);
@@ -224,9 +252,18 @@ export const Route = createFileRoute("/api/public/cron/worker")({
               .update({
                 status: "succeeded",
                 finished_at: new Date().toISOString(),
+                locked_at: null,
+                locked_by: null,
                 result: result as never,
               })
               .eq("id", c.id);
+            await admin.from("job_logs").insert({
+              job_id: c.id,
+              organization_id: c.organization_id,
+              level: "info",
+              message: "Job succeeded",
+              metadata: { result: result as never },
+            });
             await admin.from("activities").insert({
               organization_id: c.organization_id,
               owner_id: c.created_by,
@@ -238,15 +275,50 @@ export const Route = createFileRoute("/api/public/cron/worker")({
             results.push({ id: c.id, status: "succeeded" });
           } catch (e) {
             const message = e instanceof Error ? e.message : String(e);
-            await admin
-              .from("background_jobs")
-              .update({
-                status: "failed",
-                finished_at: new Date().toISOString(),
-                error: message,
-              })
-              .eq("id", c.id);
-            results.push({ id: c.id, status: "failed", error: message });
+            const nextAttempt = c.retry_count + 1;
+            const willRetry = nextAttempt <= c.max_retries;
+            if (willRetry) {
+              const delayMs = BACKOFF_BASE_SECONDS * 1000 * Math.pow(2, c.retry_count);
+              await admin
+                .from("background_jobs")
+                .update({
+                  status: "queued",
+                  retry_count: nextAttempt,
+                  last_error: message,
+                  next_run_at: new Date(Date.now() + delayMs).toISOString(),
+                  locked_at: null,
+                  locked_by: null,
+                })
+                .eq("id", c.id);
+              await admin.from("job_logs").insert({
+                job_id: c.id,
+                organization_id: c.organization_id,
+                level: "warn",
+                message: `Job failed, will retry in ${Math.round(delayMs / 1000)}s`,
+                metadata: { error: message, attempt: nextAttempt },
+              });
+              results.push({ id: c.id, status: "retry", error: message });
+            } else {
+              await admin
+                .from("background_jobs")
+                .update({
+                  status: "failed",
+                  finished_at: new Date().toISOString(),
+                  error: message,
+                  last_error: message,
+                  locked_at: null,
+                  locked_by: null,
+                })
+                .eq("id", c.id);
+              await admin.from("job_logs").insert({
+                job_id: c.id,
+                organization_id: c.organization_id,
+                level: "error",
+                message: "Job permanently failed after max retries",
+                metadata: { error: message, attempts: nextAttempt },
+              });
+              results.push({ id: c.id, status: "failed", error: message });
+            }
           }
         }
 

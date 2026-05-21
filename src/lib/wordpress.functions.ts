@@ -796,6 +796,15 @@ export const applyWordpressFix = createServerFn({ method: "POST" })
     const conn = await getConnection(supabase, data.organizationId, data.siteId);
     if (!conn) throw new Error("WordPress is not connected for this site");
 
+    // Capture "before" snapshot for rollback
+    const { data: prevPost } = await supabase
+      .from("wordpress_posts")
+      .select("id, title, content_html, post_type")
+      .eq("organization_id", data.organizationId)
+      .eq("site_id", data.siteId)
+      .eq("wp_post_id", data.wpPostId)
+      .maybeSingle();
+
     const res = await fetch(`${conn.url}/wp-json/wp/v2/posts/${data.wpPostId}`, {
       method: "POST",
       headers: {
@@ -831,6 +840,24 @@ export const applyWordpressFix = createServerFn({ method: "POST" })
       .eq("organization_id", data.organizationId)
       .eq("site_id", data.siteId)
       .eq("wp_post_id", data.wpPostId);
+
+    // Persist revision for rollback
+    await supabase.from("wp_revisions").insert({
+      organization_id: data.organizationId,
+      site_id: data.siteId,
+      post_id: prevPost?.id ?? null,
+      wp_post_id: data.wpPostId,
+      post_type: prevPost?.post_type ?? "post",
+      before: {
+        title: prevPost?.title ?? null,
+        content: prevPost?.content_html ?? null,
+      } as Json,
+      after: {
+        title: data.title ?? null,
+        content: data.content,
+      } as Json,
+      applied_by: userId,
+    });
 
     await supabase
       .from("content_recommendations")

@@ -231,11 +231,20 @@ export type Database = {
           error_message: string | null
           finished_at: string | null
           id: string
+          idempotency_key: string | null
           items_processed: number
           job_type: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number
+          next_run_at: string
           organization_id: string
           payload: Json
+          priority: number
           result: Json | null
+          retry_count: number
+          scheduled_at: string
           site_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["job_status"]
@@ -248,11 +257,20 @@ export type Database = {
           error_message?: string | null
           finished_at?: string | null
           id?: string
+          idempotency_key?: string | null
           items_processed?: number
           job_type: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_run_at?: string
           organization_id: string
           payload?: Json
+          priority?: number
           result?: Json | null
+          retry_count?: number
+          scheduled_at?: string
           site_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
@@ -265,11 +283,20 @@ export type Database = {
           error_message?: string | null
           finished_at?: string | null
           id?: string
+          idempotency_key?: string | null
           items_processed?: number
           job_type?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_run_at?: string
           organization_id?: string
           payload?: Json
+          priority?: number
           result?: Json | null
+          retry_count?: number
+          scheduled_at?: string
           site_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["job_status"]
@@ -805,6 +832,44 @@ export type Database = {
           },
         ]
       }
+      job_logs: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          level: string
+          message: string
+          metadata: Json
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          level?: string
+          message: string
+          metadata?: Json
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          level?: string
+          message?: string
+          metadata?: Json
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "background_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       keyword_rankings: {
         Row: {
           created_at: string
@@ -999,6 +1064,62 @@ export type Database = {
         }
         Relationships: []
       }
+      score_breakdowns: {
+        Row: {
+          computed_at: string
+          confidence: string
+          estimated_impact: string | null
+          evidence: Json
+          explanation: string | null
+          id: string
+          organization_id: string
+          post_id: string | null
+          recommended_actions: Json
+          score: number
+          score_type: string
+          site_id: string
+          url: string | null
+        }
+        Insert: {
+          computed_at?: string
+          confidence?: string
+          estimated_impact?: string | null
+          evidence?: Json
+          explanation?: string | null
+          id?: string
+          organization_id: string
+          post_id?: string | null
+          recommended_actions?: Json
+          score: number
+          score_type: string
+          site_id: string
+          url?: string | null
+        }
+        Update: {
+          computed_at?: string
+          confidence?: string
+          estimated_impact?: string | null
+          evidence?: Json
+          explanation?: string | null
+          id?: string
+          organization_id?: string
+          post_id?: string | null
+          recommended_actions?: Json
+          score?: number
+          score_type?: string
+          site_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_breakdowns_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       search_console_daily: {
         Row: {
           clicks: number
@@ -1050,6 +1171,7 @@ export type Database = {
       sites: {
         Row: {
           created_at: string
+          detected_seo_plugin: string | null
           ga4_property_id: string | null
           gsc_property: string | null
           health_score: number | null
@@ -1069,6 +1191,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          detected_seo_plugin?: string | null
           ga4_property_id?: string | null
           gsc_property?: string | null
           health_score?: number | null
@@ -1088,6 +1211,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          detected_seo_plugin?: string | null
           ga4_property_id?: string | null
           gsc_property?: string | null
           health_score?: number | null
@@ -1408,6 +1532,7 @@ export type Database = {
         Row: {
           aeo_score: number | null
           author: string | null
+          canonical_url: string | null
           categories: Json | null
           content_html: string | null
           content_text: string | null
@@ -1423,6 +1548,8 @@ export type Database = {
           published_at: string | null
           reading_time: number | null
           recommended_action: string | null
+          seo_meta: Json
+          seo_plugin: string | null
           seo_score: number | null
           site_id: string
           slug: string | null
@@ -1437,6 +1564,7 @@ export type Database = {
         Insert: {
           aeo_score?: number | null
           author?: string | null
+          canonical_url?: string | null
           categories?: Json | null
           content_html?: string | null
           content_text?: string | null
@@ -1452,6 +1580,8 @@ export type Database = {
           published_at?: string | null
           reading_time?: number | null
           recommended_action?: string | null
+          seo_meta?: Json
+          seo_plugin?: string | null
           seo_score?: number | null
           site_id: string
           slug?: string | null
@@ -1466,6 +1596,7 @@ export type Database = {
         Update: {
           aeo_score?: number | null
           author?: string | null
+          canonical_url?: string | null
           categories?: Json | null
           content_html?: string | null
           content_text?: string | null
@@ -1481,6 +1612,8 @@ export type Database = {
           published_at?: string | null
           reading_time?: number | null
           recommended_action?: string | null
+          seo_meta?: Json
+          seo_plugin?: string | null
           seo_score?: number | null
           site_id?: string
           slug?: string | null
@@ -1505,6 +1638,69 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_revisions: {
+        Row: {
+          after: Json
+          applied_at: string
+          applied_by: string
+          before: Json
+          id: string
+          job_id: string | null
+          organization_id: string
+          post_id: string | null
+          post_type: string
+          rolled_back_at: string | null
+          rolled_back_by: string | null
+          site_id: string
+          wp_post_id: number
+        }
+        Insert: {
+          after?: Json
+          applied_at?: string
+          applied_by: string
+          before?: Json
+          id?: string
+          job_id?: string | null
+          organization_id: string
+          post_id?: string | null
+          post_type?: string
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          site_id: string
+          wp_post_id: number
+        }
+        Update: {
+          after?: Json
+          applied_at?: string
+          applied_by?: string
+          before?: Json
+          id?: string
+          job_id?: string | null
+          organization_id?: string
+          post_id?: string | null
+          post_type?: string
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          site_id?: string
+          wp_post_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_revisions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "background_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_revisions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
             referencedColumns: ["id"]
           },
         ]

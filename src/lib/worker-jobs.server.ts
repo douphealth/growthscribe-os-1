@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { getWpConnection, wpAuthHeader } from "./wordpress.server";
-import { scoreContent } from "./content-scoring";
+import { scoreContent, scoreBreakdowns } from "./content-scoring";
 import { callLovableAIStructured } from "./ai-gateway";
 
 type Admin = SupabaseClient<Database>;
@@ -173,10 +173,27 @@ export async function runWpVerify(admin: Admin, job: JobRow) {
   const probe = `${conn.url}/wp-json/wp/v2/users/me?context=edit`;
   let ok = false;
   let detail: string | null = null;
+  let detectedPlugin: string | null = null;
   try {
     const r = await fetch(probe, { headers: { Authorization: wpAuthHeader(conn) } });
     ok = r.ok;
     if (!ok) detail = `HTTP ${r.status}`;
+    // Detect SEO plugin via /wp-json namespaces
+    try {
+      const root = await fetch(`${conn.url}/wp-json`, {
+        headers: { Authorization: wpAuthHeader(conn) },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (root.ok) {
+        const meta = (await root.json()) as { namespaces?: string[] };
+        const ns = (meta.namespaces ?? []).join(" ").toLowerCase();
+        if (ns.includes("yoast")) detectedPlugin = "yoast";
+        else if (ns.includes("rankmath") || ns.includes("rank-math")) detectedPlugin = "rankmath";
+        else if (ns.includes("aioseo")) detectedPlugin = "aioseo";
+      }
+    } catch {
+      // best-effort
+    }
   } catch (e) {
     detail = (e as Error).message;
   }
@@ -192,11 +209,14 @@ export async function runWpVerify(admin: Admin, job: JobRow) {
     .eq("provider", "wordpress");
   await admin
     .from("sites")
-    .update({ status: ok ? "connected" : "disconnected" })
+    .update({
+      status: ok ? "connected" : "disconnected",
+      detected_seo_plugin: detectedPlugin,
+    })
     .eq("id", job.site_id)
     .eq("organization_id", job.organization_id);
   if (!ok) throw new Error(`Verify failed: ${detail ?? "unknown"}`);
-  return { ok, detail };
+  return { ok, detail, detectedSeoPlugin: detectedPlugin };
 }
 
 // ---------- job: wp_sync ----------
@@ -224,6 +244,48 @@ export async function runWpSync(admin: Admin, job: JobRow) {
           .upsert(rows, { onConflict: "site_id,wp_post_id,post_type" });
         if (error) throw error;
         synced += rows.length;
+        // Persist explainable score breakdowns
+        try {
+          const { data: persisted } = await admin
+            .from("wordpress_posts")
+            .select("id, title, excerpt, content_html, content_text, word_count, url")
+            .eq("organization_id", job.organization_id)
+            .eq("site_id", job.site_id!)
+            .in(
+              "wp_post_id",
+              batch.map((b) => b.id),
+            );
+          const breakdownRows = (persisted ?? []).flatMap((p) =>
+            scoreBreakdowns({
+              title: p.title,
+              excerpt: p.excerpt,
+              contentHtml: p.content_html,
+              contentText: p.content_text,
+              wordCount: p.word_count,
+              url: p.url,
+            }).map((b) => ({
+              organization_id: job.organization_id,
+              site_id: job.site_id!,
+              post_id: p.id,
+              url: p.url,
+              score_type: b.score_type,
+              score: b.score,
+              explanation: b.explanation,
+              evidence: b.evidence as unknown as Json,
+              recommended_actions: b.recommended_actions as unknown as Json,
+              estimated_impact: b.estimated_impact,
+              confidence: b.confidence,
+              computed_at: new Date().toISOString(),
+            })),
+          );
+          if (breakdownRows.length > 0) {
+            await admin
+              .from("score_breakdowns")
+              .upsert(breakdownRows, { onConflict: "post_id,score_type" });
+          }
+        } catch (be) {
+          warnings.push(`score breakdowns: ${(be as Error).message}`);
+        }
         await admin
           .from("background_jobs")
           .update({ items_processed: synced })
