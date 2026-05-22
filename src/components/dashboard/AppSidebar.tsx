@@ -23,6 +23,7 @@ import {
   Telescope,
   Rocket,
   Cog,
+  BookOpen,
 } from "lucide-react";
 import {
   Sidebar,
@@ -79,6 +80,7 @@ const sections: Array<{
     icon: Lightbulb,
     items: [
       { title: "Recommendations", url: "/recommendations", icon: Lightbulb },
+      { title: "Playbooks", url: "/playbooks", icon: BookOpen },
       { title: "Content Briefs", url: "/briefs", icon: FileText },
       { title: "Tasks", url: "/tasks", icon: ListTodo },
     ],

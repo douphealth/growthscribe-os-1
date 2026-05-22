@@ -19,6 +19,7 @@ import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSitesRouteImport } from './routes/_authenticated/sites'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
+import { Route as AuthenticatedPlaybooksRouteImport } from './routes/_authenticated/playbooks'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -83,6 +84,11 @@ const AuthenticatedRecommendationsRoute =
     path: '/recommendations',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPlaybooksRoute = AuthenticatedPlaybooksRouteImport.update({
+  id: '/playbooks',
+  path: '/playbooks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/playbooks': typeof AuthenticatedPlaybooksRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/playbooks': typeof AuthenticatedPlaybooksRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/playbooks': typeof AuthenticatedPlaybooksRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/integrations'
     | '/onboarding'
+    | '/playbooks'
     | '/recommendations'
     | '/settings'
     | '/sites'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/integrations'
     | '/onboarding'
+    | '/playbooks'
     | '/recommendations'
     | '/settings'
     | '/sites'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/integrations'
     | '/_authenticated/onboarding'
+    | '/_authenticated/playbooks'
     | '/_authenticated/recommendations'
     | '/_authenticated/settings'
     | '/_authenticated/sites'
@@ -371,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/recommendations'
       fullPath: '/recommendations'
       preLoaderRoute: typeof AuthenticatedRecommendationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/playbooks': {
+      id: '/_authenticated/playbooks'
+      path: '/playbooks'
+      fullPath: '/playbooks'
+      preLoaderRoute: typeof AuthenticatedPlaybooksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -470,6 +489,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPlaybooksRoute: typeof AuthenticatedPlaybooksRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
@@ -488,6 +508,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPlaybooksRoute: AuthenticatedPlaybooksRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
