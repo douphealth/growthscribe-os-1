@@ -514,6 +514,60 @@ export type Database = {
           },
         ]
       }
+      content_changesets: {
+        Row: {
+          after_hash: string | null
+          after_snapshot: Json
+          applied_at: string
+          applied_by: string
+          asset_blocks_added: Json
+          before_hash: string | null
+          before_snapshot: Json
+          id: string
+          organization_id: string
+          playbook_id: string | null
+          playbook_run_id: string | null
+          post_id: string | null
+          site_id: string
+          source: string
+          wp_post_id: number | null
+        }
+        Insert: {
+          after_hash?: string | null
+          after_snapshot?: Json
+          applied_at?: string
+          applied_by: string
+          asset_blocks_added?: Json
+          before_hash?: string | null
+          before_snapshot?: Json
+          id?: string
+          organization_id: string
+          playbook_id?: string | null
+          playbook_run_id?: string | null
+          post_id?: string | null
+          site_id: string
+          source: string
+          wp_post_id?: number | null
+        }
+        Update: {
+          after_hash?: string | null
+          after_snapshot?: Json
+          applied_at?: string
+          applied_by?: string
+          asset_blocks_added?: Json
+          before_hash?: string | null
+          before_snapshot?: Json
+          id?: string
+          organization_id?: string
+          playbook_id?: string | null
+          playbook_run_id?: string | null
+          post_id?: string | null
+          site_id?: string
+          source?: string
+          wp_post_id?: number | null
+        }
+        Relationships: []
+      }
       content_recommendations: {
         Row: {
           audit_id: string | null
@@ -978,6 +1032,60 @@ export type Database = {
         }
         Relationships: []
       }
+      lift_measurements: {
+        Row: {
+          baseline_clicks: number | null
+          baseline_impressions: number | null
+          baseline_position: number | null
+          changeset_id: string
+          clicks_delta: number | null
+          id: string
+          impressions_delta: number | null
+          measured_at: string
+          organization_id: string
+          position_delta: number | null
+          post_clicks: number | null
+          post_impressions: number | null
+          post_position: number | null
+          site_id: string
+          window_days: number
+        }
+        Insert: {
+          baseline_clicks?: number | null
+          baseline_impressions?: number | null
+          baseline_position?: number | null
+          changeset_id: string
+          clicks_delta?: number | null
+          id?: string
+          impressions_delta?: number | null
+          measured_at?: string
+          organization_id: string
+          position_delta?: number | null
+          post_clicks?: number | null
+          post_impressions?: number | null
+          post_position?: number | null
+          site_id: string
+          window_days: number
+        }
+        Update: {
+          baseline_clicks?: number | null
+          baseline_impressions?: number | null
+          baseline_position?: number | null
+          changeset_id?: string
+          clicks_delta?: number | null
+          id?: string
+          impressions_delta?: number | null
+          measured_at?: string
+          organization_id?: string
+          position_delta?: number | null
+          post_clicks?: number | null
+          post_impressions?: number | null
+          post_position?: number | null
+          site_id?: string
+          window_days?: number
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -1088,6 +1196,129 @@ export type Database = {
           strategy?: string
           ttfb_ms?: number | null
           url?: string
+        }
+        Relationships: []
+      }
+      playbook_runs: {
+        Row: {
+          applied_changeset_id: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          error: string | null
+          id: string
+          organization_id: string
+          playbook_id: string
+          post_id: string | null
+          proposed_diff: Json
+          site_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applied_changeset_id?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          error?: string | null
+          id?: string
+          organization_id: string
+          playbook_id: string
+          post_id?: string | null
+          proposed_diff?: Json
+          site_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applied_changeset_id?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          id?: string
+          organization_id?: string
+          playbook_id?: string
+          post_id?: string | null
+          proposed_diff?: Json
+          site_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      playbooks: {
+        Row: {
+          asset_blocks: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          organization_id: string
+          scoring_weights: Json
+          target_intent: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_blocks?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          organization_id: string
+          scoring_weights?: Json
+          target_intent?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_blocks?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          scoring_weights?: Json
+          target_intent?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      post_intents: {
+        Row: {
+          classified_at: string
+          confidence: number | null
+          id: string
+          intent: string
+          organization_id: string
+          post_id: string
+          rationale: string | null
+          site_id: string
+        }
+        Insert: {
+          classified_at?: string
+          confidence?: number | null
+          id?: string
+          intent: string
+          organization_id: string
+          post_id: string
+          rationale?: string | null
+          site_id: string
+        }
+        Update: {
+          classified_at?: string
+          confidence?: number | null
+          id?: string
+          intent?: string
+          organization_id?: string
+          post_id?: string
+          rationale?: string | null
+          site_id?: string
         }
         Relationships: []
       }
