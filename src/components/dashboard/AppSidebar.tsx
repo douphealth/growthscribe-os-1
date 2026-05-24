@@ -27,6 +27,7 @@ import {
   Zap,
   Activity,
 } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -94,6 +95,7 @@ const sections: Array<{
       { title: "Approvals", url: "/approvals", icon: CheckCircle2 },
       { title: "Technical SEO", url: "/technical", icon: Wrench },
       { title: "Optimization", url: "/optimization", icon: Zap },
+      { title: "Lift", url: "/lift", icon: TrendingUp },
     ],
   },
   {
