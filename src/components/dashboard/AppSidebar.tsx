@@ -26,6 +26,7 @@ import {
   BookOpen,
   Zap,
   Activity,
+  Gauge,
 } from "lucide-react";
 import { TrendingUp } from "lucide-react";
 import {
@@ -96,6 +97,7 @@ const sections: Array<{
       { title: "Technical SEO", url: "/technical", icon: Wrench },
       { title: "Optimization", url: "/optimization", icon: Zap },
       { title: "Lift", url: "/lift", icon: TrendingUp },
+      { title: "Core Web Vitals", url: "/vitals", icon: Gauge },
     ],
   },
   {
