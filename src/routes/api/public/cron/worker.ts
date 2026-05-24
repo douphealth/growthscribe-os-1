@@ -218,8 +218,7 @@ export const Route = createFileRoute("/api/public/cron/worker")({
         }
 
         // Execute phase: run claimed jobs in parallel batches.
-        const runJob = async (c: NonNullable<typeof candidates>[number]) => {
-          // Per-org concurrency cap.
+        const runJob = async (c: NonNullable<typeof claimedJobs>[number]) => {
           await admin.from("job_logs").insert({
             job_id: c.id,
             organization_id: c.organization_id,
