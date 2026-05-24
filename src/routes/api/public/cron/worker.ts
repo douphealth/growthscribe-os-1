@@ -18,6 +18,9 @@ import {
   runGa4Import,
   runVitalsRefresh,
   runCrawlSite,
+  runAuditApply,
+  runSerpTrack,
+  runTopicalGapFill,
   type JobRow,
 } from "@/lib/worker-jobs.server";
 
@@ -158,6 +161,12 @@ async function dispatch(
     case "crawl.site":
     case "crawl_site":
       return runCrawlSite(admin, job);
+    case "audit_apply":
+      return runAuditApply(admin, job);
+    case "serp.track":
+      return runSerpTrack(admin, job);
+    case "topical.gap_fill":
+      return runTopicalGapFill(admin, job);
     default:
       throw new Error(`Unknown job_type: ${job.job_type}`);
   }

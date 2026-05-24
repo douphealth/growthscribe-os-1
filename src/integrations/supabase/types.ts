@@ -61,6 +61,45 @@ export type Database = {
           },
         ]
       }
+      ai_engine_citations: {
+        Row: {
+          appears: boolean
+          citation_url: string | null
+          created_at: string
+          engine: string
+          id: string
+          organization_id: string
+          query: string
+          rank: number | null
+          site_id: string
+          week: string
+        }
+        Insert: {
+          appears?: boolean
+          citation_url?: string | null
+          created_at?: string
+          engine: string
+          id?: string
+          organization_id: string
+          query: string
+          rank?: number | null
+          site_id: string
+          week: string
+        }
+        Update: {
+          appears?: boolean
+          citation_url?: string | null
+          created_at?: string
+          engine?: string
+          id?: string
+          organization_id?: string
+          query?: string
+          rank?: number | null
+          site_id?: string
+          week?: string
+        }
+        Relationships: []
+      }
       ai_visibility_tests: {
         Row: {
           appears: boolean | null
@@ -223,6 +262,36 @@ export type Database = {
           },
         ]
       }
+      auto_apply_settings: {
+        Row: {
+          exclude_categories: Json
+          exclude_post_ids: Json
+          mode: string
+          organization_id: string
+          paused: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          exclude_categories?: Json
+          exclude_post_ids?: Json
+          mode?: string
+          organization_id: string
+          paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          exclude_categories?: Json
+          exclude_post_ids?: Json
+          mode?: string
+          organization_id?: string
+          paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       background_jobs: {
         Row: {
           created_at: string
@@ -318,6 +387,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cluster_gap_briefs: {
+        Row: {
+          brief_id: string | null
+          cluster_id: string | null
+          created_at: string
+          id: string
+          intent: string | null
+          organization_id: string
+          rationale: string | null
+          site_id: string
+          status: string
+          suggested_title: string
+          target_keyword: string | null
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          brief_id?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          organization_id: string
+          rationale?: string | null
+          site_id: string
+          status?: string
+          suggested_title: string
+          target_keyword?: string | null
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          organization_id?: string
+          rationale?: string | null
+          site_id?: string
+          status?: string
+          suggested_title?: string
+          target_keyword?: string | null
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       competitor_pages: {
         Row: {
@@ -761,6 +878,48 @@ export type Database = {
           site_id?: string
           source?: string | null
           users?: number
+        }
+        Relationships: []
+      }
+      geo_aeo_assets: {
+        Row: {
+          applied_at: string | null
+          applied_changeset_id: string | null
+          content_hash: string | null
+          created_at: string
+          id: string
+          jsonld: Json
+          kind: string
+          organization_id: string
+          post_id: string
+          site_id: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_changeset_id?: string | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          jsonld: Json
+          kind: string
+          organization_id: string
+          post_id: string
+          site_id: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_changeset_id?: string | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          jsonld?: Json
+          kind?: string
+          organization_id?: string
+          post_id?: string
+          site_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1459,6 +1618,48 @@ export type Database = {
         }
         Relationships: []
       }
+      serp_snapshots: {
+        Row: {
+          clicks: number
+          created_at: string
+          date: string
+          id: string
+          impressions: number
+          keyword: string
+          organization_id: string
+          page: string | null
+          position: number | null
+          site_id: string
+          source: string
+        }
+        Insert: {
+          clicks?: number
+          created_at?: string
+          date: string
+          id?: string
+          impressions?: number
+          keyword: string
+          organization_id: string
+          page?: string | null
+          position?: number | null
+          site_id: string
+          source?: string
+        }
+        Update: {
+          clicks?: number
+          created_at?: string
+          date?: string
+          id?: string
+          impressions?: number
+          keyword?: string
+          organization_id?: string
+          page?: string | null
+          position?: number | null
+          site_id?: string
+          source?: string
+        }
+        Relationships: []
+      }
       sites: {
         Row: {
           created_at: string
@@ -1898,6 +2099,7 @@ export type Database = {
           author: string | null
           canonical_url: string | null
           categories: Json | null
+          content_hash: string | null
           content_html: string | null
           content_text: string | null
           created_at: string
@@ -1906,7 +2108,9 @@ export type Database = {
           freshness_score: number | null
           geo_score: number | null
           id: string
+          last_optimized_at: string | null
           modified_at: string | null
+          optimization_score: number | null
           organization_id: string
           post_type: string
           published_at: string | null
@@ -1930,6 +2134,7 @@ export type Database = {
           author?: string | null
           canonical_url?: string | null
           categories?: Json | null
+          content_hash?: string | null
           content_html?: string | null
           content_text?: string | null
           created_at?: string
@@ -1938,7 +2143,9 @@ export type Database = {
           freshness_score?: number | null
           geo_score?: number | null
           id?: string
+          last_optimized_at?: string | null
           modified_at?: string | null
+          optimization_score?: number | null
           organization_id: string
           post_type?: string
           published_at?: string | null
@@ -1962,6 +2169,7 @@ export type Database = {
           author?: string | null
           canonical_url?: string | null
           categories?: Json | null
+          content_hash?: string | null
           content_html?: string | null
           content_text?: string | null
           created_at?: string
@@ -1970,7 +2178,9 @@ export type Database = {
           freshness_score?: number | null
           geo_score?: number | null
           id?: string
+          last_optimized_at?: string | null
           modified_at?: string | null
+          optimization_score?: number | null
           organization_id?: string
           post_type?: string
           published_at?: string | null
@@ -2125,7 +2335,15 @@ export type Database = {
         }
       }
       cleanup_stale_data: { Args: never; Returns: Json }
+      enqueue_full_optimization: {
+        Args: { _org_id: string; _site_id: string }
+        Returns: Json
+      }
       get_dashboard_summary: { Args: { _org_id: string }; Returns: Json }
+      get_optimization_status: {
+        Args: { _org_id: string; _site_id: string }
+        Returns: Json
+      }
       has_org_role: {
         Args: {
           _org_id: string
