@@ -88,9 +88,10 @@ describe("psiFindings", () => {
     const findings = psiFindings({
       strategy: "mobile",
       performance: 0.3,
-      lcpMs: 6000,
-      clsScore: 0.4,
-      inpMs: 600,
+      lcp: 6000,
+      cls: 0.4,
+      inp: 600,
+      ttfb: 800,
     });
     expect(findings.length).toBeGreaterThan(0);
     expect(findings.some((f) => /LCP|CLS|INP|Performance/i.test(f.title))).toBe(true);
@@ -100,9 +101,10 @@ describe("psiFindings", () => {
     const findings = psiFindings({
       strategy: "mobile",
       performance: 0.95,
-      lcpMs: 2000,
-      clsScore: 0.05,
-      inpMs: 150,
+      lcp: 2000,
+      cls: 0.05,
+      inp: 150,
+      ttfb: 200,
     });
     expect(findings).toHaveLength(0);
   });
