@@ -26,6 +26,7 @@ import {
   BookOpen,
   Zap,
   Activity,
+  Gauge,
 } from "lucide-react";
 import { TrendingUp } from "lucide-react";
 import {
