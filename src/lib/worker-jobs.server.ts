@@ -575,6 +575,25 @@ export async function runAiVisibility(admin: Admin, job: JobRow) {
     citation_url: citation,
     raw_response: { content } as Json,
   });
+  // Weekly rollup: one row per (org, site, query, engine, week-monday).
+  const d = new Date();
+  const dow = (d.getUTCDay() + 6) % 7; // Monday-anchored
+  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow));
+  await admin
+    .from("ai_engine_citations")
+    .upsert(
+      {
+        organization_id: job.organization_id,
+        site_id: job.site_id,
+        query: payload.query,
+        engine: payload.engine,
+        appears,
+        rank,
+        citation_url: citation,
+        week: monday.toISOString().slice(0, 10),
+      },
+      { onConflict: "organization_id,site_id,query,engine,week" },
+    );
   await recordUsage(admin, job, "ai_visibility.probe", 1, {
     engine: payload.engine,
   });
