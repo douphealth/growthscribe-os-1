@@ -23,6 +23,12 @@ import {
   runTopicalGapFill,
   type JobRow,
 } from "@/lib/worker-jobs.server";
+import {
+  log,
+  runWithLogContext,
+  newRequestId,
+  captureError,
+} from "@/lib/logger.server";
 
 // Background job worker. Drains the `background_jobs` queue. Triggered every
 // minute by pg_cron (and safe to invoke manually). Atomically claims jobs by
