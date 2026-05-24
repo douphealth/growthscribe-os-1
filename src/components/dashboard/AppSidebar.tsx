@@ -25,6 +25,7 @@ import {
   Cog,
   BookOpen,
   Zap,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -100,6 +101,7 @@ const sections: Array<{
     icon: Cog,
     items: [
       { title: "Integrations", url: "/integrations", icon: Plug },
+      { title: "Observability", url: "/observability", icon: Activity, adminOnly: true },
       { title: "Audit Logs", url: "/audit-logs", icon: ScrollText, adminOnly: true },
       { title: "Settings", url: "/settings", icon: Settings },
     ],
