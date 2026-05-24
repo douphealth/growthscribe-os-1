@@ -6,6 +6,9 @@ import type { Database, Json } from "@/integrations/supabase/types";
 import { getWpConnection, wpAuthHeader } from "./wordpress.server";
 import { scoreContent, scoreBreakdowns } from "./content-scoring";
 import { callLovableAIStructured } from "./ai-gateway";
+export { runAuditApply, rollbackWpRevision } from "./auto-apply.server";
+export { runSerpTrack } from "./serp-track.server";
+export { runTopicalGapFill } from "./topical-gap.server";
 
 type Admin = SupabaseClient<Database>;
 export type JobRow = {
