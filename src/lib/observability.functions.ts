@@ -60,6 +60,34 @@ export type ObservabilitySummary = {
   top_messages: Array<{ message: string; count: number; last_seen: string }>;
 };
 
+export type AiCostSummary = {
+  window: "24h" | "7d" | "30d";
+  total_events: number;
+  total_quantity: number;
+  total_tokens: number;
+  total_cost_usd: number;
+  by_model: Array<{ model: string; events: number; tokens: number; cost_usd: number }>;
+  by_event_type: Array<{ event_type: string; events: number; quantity: number }>;
+  daily: Array<{ day: string; tokens: number; cost_usd: number }>;
+};
+
+export type SiteHealthSummary = {
+  window: "24h" | "7d";
+  error_rate_per_hour: number;
+  job_failure_rate: number;
+  jobs_total: number;
+  jobs_failed: number;
+  p50_duration_ms: number | null;
+  p95_duration_ms: number | null;
+  slo: {
+    error_rate_ok: boolean;
+    job_failure_rate_ok: boolean;
+    p95_ok: boolean;
+    overall_ok: boolean;
+  };
+  thresholds: { error_rate_per_hour: number; job_failure_rate: number; p95_duration_ms: number };
+};
+
 export const getErrorEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => orgInput.parse(i))
@@ -188,5 +216,172 @@ export const getObservabilitySummary = createServerFn({ method: "POST" })
         .map(([message, v]) => ({ message, count: v.count, last_seen: v.last_seen }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 8),
+    };
+  });
+
+const windowInput = z.object({
+  organizationId: z.string().uuid(),
+  window: z.enum(["24h", "7d", "30d"]).default("7d"),
+});
+
+function windowMs(w: "24h" | "7d" | "30d"): number {
+  return { "24h": 86_400e3, "7d": 7 * 86_400e3, "30d": 30 * 86_400e3 }[w];
+}
+
+export const getAiCostSummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => windowInput.parse(i))
+  .handler(async ({ data, context }): Promise<AiCostSummary> => {
+    const { supabase } = context;
+    const since = new Date(Date.now() - windowMs(data.window)).toISOString();
+    const { data: rows, error } = await supabase
+      .from("usage_events")
+      .select("event_type, quantity, metadata, created_at")
+      .eq("organization_id", data.organizationId)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(5000);
+    if (error) throw new Error(error.message);
+
+    const ai = (rows ?? []).filter((r) => {
+      const t = (r.event_type ?? "").toLowerCase();
+      return t.includes("ai") || t.includes("llm") || t.includes("token") || t.includes("gemini") || t.includes("gpt");
+    });
+
+    let totalTokens = 0;
+    let totalCost = 0;
+    let totalQty = 0;
+    const byModel = new Map<string, { events: number; tokens: number; cost_usd: number }>();
+    const byType = new Map<string, { events: number; quantity: number }>();
+    const daily = new Map<string, { tokens: number; cost_usd: number }>();
+
+    for (const r of ai) {
+      const m = (r.metadata ?? {}) as Record<string, unknown>;
+      const model = typeof m.model === "string" ? m.model : "(unknown)";
+      const tokens = Number(m.tokens ?? m.total_tokens ?? 0);
+      const cost = Number(m.cost_usd ?? m.cost ?? 0);
+      const qty = Number(r.quantity ?? 1);
+      totalTokens += tokens;
+      totalCost += cost;
+      totalQty += qty;
+      const mm = byModel.get(model) ?? { events: 0, tokens: 0, cost_usd: 0 };
+      mm.events += 1;
+      mm.tokens += tokens;
+      mm.cost_usd += cost;
+      byModel.set(model, mm);
+      const tt = byType.get(r.event_type) ?? { events: 0, quantity: 0 };
+      tt.events += 1;
+      tt.quantity += qty;
+      byType.set(r.event_type, tt);
+      const day = (r.created_at as string).slice(0, 10);
+      const dd = daily.get(day) ?? { tokens: 0, cost_usd: 0 };
+      dd.tokens += tokens;
+      dd.cost_usd += cost;
+      daily.set(day, dd);
+    }
+
+    return {
+      window: data.window,
+      total_events: ai.length,
+      total_quantity: totalQty,
+      total_tokens: totalTokens,
+      total_cost_usd: +totalCost.toFixed(4),
+      by_model: Array.from(byModel.entries())
+        .map(([model, v]) => ({ model, ...v, cost_usd: +v.cost_usd.toFixed(4) }))
+        .sort((a, b) => b.cost_usd - a.cost_usd || b.tokens - a.tokens)
+        .slice(0, 12),
+      by_event_type: Array.from(byType.entries())
+        .map(([event_type, v]) => ({ event_type, ...v }))
+        .sort((a, b) => b.events - a.events)
+        .slice(0, 12),
+      daily: Array.from(daily.entries())
+        .map(([day, v]) => ({ day, tokens: v.tokens, cost_usd: +v.cost_usd.toFixed(4) }))
+        .sort((a, b) => a.day.localeCompare(b.day)),
+    };
+  });
+
+function percentile(sorted: number[], p: number): number | null {
+  if (sorted.length === 0) return null;
+  const idx = Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p));
+  return sorted[idx];
+}
+
+const slowThresholdMs = 30_000;
+const slowErrorRatePerHour = 5;
+const slowJobFailureRate = 0.05;
+
+export const getSiteHealthSummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) =>
+    z.object({
+      organizationId: z.string().uuid(),
+      window: z.enum(["24h", "7d"]).default("24h"),
+    }).parse(i),
+  )
+  .handler(async ({ data, context }): Promise<SiteHealthSummary> => {
+    const { supabase } = context;
+    const ms = data.window === "24h" ? 86_400e3 : 7 * 86_400e3;
+    const since = new Date(Date.now() - ms).toISOString();
+    const hours = ms / 3_600e3;
+
+    const [errCount, jobsAll, jobsFailed, durRows] = await Promise.all([
+      supabase
+        .from("error_events")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", data.organizationId)
+        .eq("level", "error")
+        .gte("created_at", since),
+      supabase
+        .from("background_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", data.organizationId)
+        .gte("created_at", since),
+      supabase
+        .from("background_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", data.organizationId)
+        .eq("status", "failed")
+        .gte("created_at", since),
+      supabase
+        .from("job_logs")
+        .select("duration_ms")
+        .eq("organization_id", data.organizationId)
+        .not("duration_ms", "is", null)
+        .gte("created_at", since)
+        .limit(2000),
+    ]);
+
+    const sorted = (durRows.data ?? [])
+      .map((r) => Number(r.duration_ms))
+      .filter((n) => Number.isFinite(n))
+      .sort((a, b) => a - b);
+    const p50 = percentile(sorted, 0.5);
+    const p95 = percentile(sorted, 0.95);
+
+    const errorRate = (errCount.count ?? 0) / hours;
+    const jobsTotal = jobsAll.count ?? 0;
+    const jobsFail = jobsFailed.count ?? 0;
+    const failRate = jobsTotal === 0 ? 0 : jobsFail / jobsTotal;
+
+    const slo = {
+      error_rate_ok: errorRate <= slowErrorRatePerHour,
+      job_failure_rate_ok: failRate <= slowJobFailureRate,
+      p95_ok: p95 == null ? true : p95 <= slowThresholdMs,
+    };
+
+    return {
+      window: data.window,
+      error_rate_per_hour: +errorRate.toFixed(2),
+      job_failure_rate: +failRate.toFixed(4),
+      jobs_total: jobsTotal,
+      jobs_failed: jobsFail,
+      p50_duration_ms: p50,
+      p95_duration_ms: p95,
+      slo: { ...slo, overall_ok: slo.error_rate_ok && slo.job_failure_rate_ok && slo.p95_ok },
+      thresholds: {
+        error_rate_per_hour: slowErrorRatePerHour,
+        job_failure_rate: slowJobFailureRate,
+        p95_duration_ms: slowThresholdMs,
+      },
     };
   });
