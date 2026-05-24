@@ -6,6 +6,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth-context";
@@ -14,6 +15,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { ErrorScreen } from "@/components/ErrorScreen";
 import { MissingEnvScreen } from "@/components/MissingEnvScreen";
 import { getMissingEnvVars } from "@/lib/env-check";
+import {
+  installClientErrorReporter,
+  reportClientError,
+} from "@/lib/client-error-reporter";
 
 function NotFoundComponent() {
   return (
@@ -39,6 +44,13 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
+  // Persist React render errors to error_events so they show up in the
+  // observability dashboard alongside server failures.
+  try {
+    reportClientError(error, { level: "fatal", context: { kind: "react-render" } });
+  } catch {
+    // ignore — never let logging crash the error boundary
+  }
   const missing = getMissingEnvVars();
   if (missing.length > 0) return <MissingEnvScreen missing={missing} />;
   return <ErrorScreen error={error} reset={reset} />;
@@ -98,6 +110,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    installClientErrorReporter();
+  }, []);
 
   const missing = getMissingEnvVars();
   if (missing.length > 0) {
