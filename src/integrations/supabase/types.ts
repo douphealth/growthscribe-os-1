@@ -1062,6 +1062,56 @@ export type Database = {
           },
         ]
       }
+      error_events: {
+        Row: {
+          context: Json
+          created_at: string
+          error_stack: string | null
+          id: string
+          level: string
+          message: string
+          organization_id: string | null
+          request_id: string | null
+          route: string | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          error_stack?: string | null
+          id?: string
+          level?: string
+          message: string
+          organization_id?: string | null
+          request_id?: string | null
+          route?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          error_stack?: string | null
+          id?: string
+          level?: string
+          message?: string
+          organization_id?: string | null
+          request_id?: string | null
+          route?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ga4_daily: {
         Row: {
           conversions: number
@@ -1430,30 +1480,36 @@ export type Database = {
       job_logs: {
         Row: {
           created_at: string
+          duration_ms: number | null
           id: string
           job_id: string
           level: string
           message: string
           metadata: Json
           organization_id: string
+          request_id: string | null
         }
         Insert: {
           created_at?: string
+          duration_ms?: number | null
           id?: string
           job_id: string
           level?: string
           message: string
           metadata?: Json
           organization_id: string
+          request_id?: string | null
         }
         Update: {
           created_at?: string
+          duration_ms?: number | null
           id?: string
           job_id?: string
           level?: string
           message?: string
           metadata?: Json
           organization_id?: string
+          request_id?: string | null
         }
         Relationships: [
           {
