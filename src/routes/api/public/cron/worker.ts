@@ -234,16 +234,35 @@ export const Route = createFileRoute("/api/public/cron/worker")({
 
         // Execute phase: run claimed jobs in parallel batches.
         const runJob = async (c: NonNullable<typeof claimedJobs>[number]) => {
-          await admin.from("job_logs").insert({
-            job_id: c.id,
-            organization_id: c.organization_id,
-            level: "info",
-            message: `Job started (attempt ${c.retry_count + 1}/${c.max_retries + 1})`,
-            metadata: { job_type: c.job_type, worker_id: workerId },
-          });
+          const requestId = newRequestId();
+          const startedAt = Date.now();
+          return runWithLogContext(
+            {
+              request_id: requestId,
+              organization_id: c.organization_id,
+              user_id: c.created_by,
+              job_id: c.id,
+              job_type: c.job_type,
+              source: "worker",
+            },
+            async () => {
+              log.info("job.start", {
+                attempt: c.retry_count + 1,
+                max_attempts: c.max_retries + 1,
+                worker_id: workerId,
+              });
+              await admin.from("job_logs").insert({
+                job_id: c.id,
+                organization_id: c.organization_id,
+                level: "info",
+                message: `Job started (attempt ${c.retry_count + 1}/${c.max_retries + 1})`,
+                request_id: requestId,
+                metadata: { job_type: c.job_type, worker_id: workerId },
+              });
 
-          try {
-            const result = await withTimeout(dispatch(admin, c), JOB_TIMEOUT_MS);
+              try {
+                const result = await withTimeout(dispatch(admin, c), JOB_TIMEOUT_MS);
+                const durationMs = Date.now() - startedAt;
             await admin
               .from("background_jobs")
               .update({
@@ -259,8 +278,11 @@ export const Route = createFileRoute("/api/public/cron/worker")({
               organization_id: c.organization_id,
               level: "info",
               message: "Job succeeded",
+              request_id: requestId,
+              duration_ms: durationMs,
               metadata: { result: result as never },
             });
+            log.info("job.success", { duration_ms: durationMs });
             await admin.from("activities").insert({
               organization_id: c.organization_id,
               owner_id: c.created_by,
@@ -272,6 +294,7 @@ export const Route = createFileRoute("/api/public/cron/worker")({
             results.push({ id: c.id, status: "succeeded" });
           } catch (e) {
             const message = e instanceof Error ? e.message : String(e);
+            const durationMs = Date.now() - startedAt;
             const nextAttempt = c.retry_count + 1;
             const willRetry = nextAttempt <= c.max_retries;
             if (willRetry) {
@@ -292,8 +315,11 @@ export const Route = createFileRoute("/api/public/cron/worker")({
                 organization_id: c.organization_id,
                 level: "warn",
                 message: `Job failed, will retry in ${Math.round(delayMs / 1000)}s`,
+                request_id: requestId,
+                duration_ms: durationMs,
                 metadata: { error: message, attempt: nextAttempt },
               });
+              log.warn("job.retry", { error: message, attempt: nextAttempt, delay_ms: delayMs });
               results.push({ id: c.id, status: "retry", error: message });
             } else {
               await admin
@@ -312,11 +338,21 @@ export const Route = createFileRoute("/api/public/cron/worker")({
                 organization_id: c.organization_id,
                 level: "error",
                 message: "Job permanently failed after max retries",
+                request_id: requestId,
+                duration_ms: durationMs,
                 metadata: { error: message, attempts: nextAttempt },
+              });
+              await captureError(admin, e, {
+                message: `job.${c.job_type} permanently failed`,
+                source: "worker",
+                route: "/api/public/cron/worker",
+                level: "error",
               });
               results.push({ id: c.id, status: "failed", error: message });
             }
-          }
+              }
+            },
+          );
         };
 
         for (let i = 0; i < claimedJobs.length; i += MAX_PARALLEL) {
