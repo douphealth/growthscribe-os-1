@@ -30,6 +30,7 @@ import { Route as AuthenticatedAuditsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authenticated/audit-logs'
 import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authenticated/approvals'
 import { Route as AuthenticatedAiVisibilityRouteImport } from './routes/_authenticated/ai-visibility'
+import { Route as ApiPublicErrorsRouteImport } from './routes/api/public/errors'
 import { Route as ApiPublicCronWorkerRouteImport } from './routes/api/public/cron/worker'
 import { Route as ApiPublicCronScanRouteImport } from './routes/api/public/cron/scan'
 import { Route as ApiPublicCronGscPullRouteImport } from './routes/api/public/cron/gsc-pull'
@@ -144,6 +145,11 @@ const AuthenticatedAiVisibilityRoute =
     path: '/ai-visibility',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicErrorsRoute = ApiPublicErrorsRouteImport.update({
+  id: '/api/public/errors',
+  path: '/api/public/errors',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCronWorkerRoute = ApiPublicCronWorkerRouteImport.update({
   id: '/api/public/cron/worker',
   path: '/api/public/cron/worker',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/tasks': typeof AuthenticatedTasksRoute
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/errors': typeof ApiPublicErrorsRoute
   '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/tasks': typeof AuthenticatedTasksRoute
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/errors': typeof ApiPublicErrorsRoute
   '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/technical': typeof AuthenticatedTechnicalRoute
   '/_authenticated/topical-maps': typeof AuthenticatedTopicalMapsRoute
+  '/api/public/errors': typeof ApiPublicErrorsRoute
   '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
   '/api/public/cron/worker': typeof ApiPublicCronWorkerRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/technical'
     | '/topical-maps'
+    | '/api/public/errors'
     | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/tasks'
     | '/technical'
     | '/topical-maps'
+    | '/api/public/errors'
     | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks'
     | '/_authenticated/technical'
     | '/_authenticated/topical-maps'
+    | '/api/public/errors'
     | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
     | '/api/public/cron/worker'
@@ -321,6 +333,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  ApiPublicErrorsRoute: typeof ApiPublicErrorsRoute
   ApiPublicCronGscPullRoute: typeof ApiPublicCronGscPullRoute
   ApiPublicCronScanRoute: typeof ApiPublicCronScanRoute
   ApiPublicCronWorkerRoute: typeof ApiPublicCronWorkerRoute
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAiVisibilityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/errors': {
+      id: '/api/public/errors'
+      path: '/api/public/errors'
+      fullPath: '/api/public/errors'
+      preLoaderRoute: typeof ApiPublicErrorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/worker': {
       id: '/api/public/cron/worker'
       path: '/api/public/cron/worker'
@@ -547,6 +567,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  ApiPublicErrorsRoute: ApiPublicErrorsRoute,
   ApiPublicCronGscPullRoute: ApiPublicCronGscPullRoute,
   ApiPublicCronScanRoute: ApiPublicCronScanRoute,
   ApiPublicCronWorkerRoute: ApiPublicCronWorkerRoute,
@@ -554,13 +575,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
