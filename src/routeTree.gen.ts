@@ -22,6 +22,7 @@ import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_auth
 import { Route as AuthenticatedPlaybooksRouteImport } from './routes/_authenticated/playbooks'
 import { Route as AuthenticatedOptimizationRouteImport } from './routes/_authenticated/optimization'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedObservabilityRouteImport } from './routes/_authenticated/observability'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentInventoryRouteImport } from './routes/_authenticated/content-inventory'
@@ -102,6 +103,12 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedObservabilityRoute =
+  AuthenticatedObservabilityRouteImport.update({
+    id: '/observability',
+    path: '/observability',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedIntegrationsRoute =
   AuthenticatedIntegrationsRouteImport.update({
     id: '/integrations',
@@ -178,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
+  '/observability': typeof AuthenticatedObservabilityRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/optimization': typeof AuthenticatedOptimizationRoute
   '/playbooks': typeof AuthenticatedPlaybooksRoute
@@ -204,6 +212,7 @@ export interface FileRoutesByTo {
   '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
+  '/observability': typeof AuthenticatedObservabilityRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/optimization': typeof AuthenticatedOptimizationRoute
   '/playbooks': typeof AuthenticatedPlaybooksRoute
@@ -232,6 +241,7 @@ export interface FileRoutesById {
   '/_authenticated/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
+  '/_authenticated/observability': typeof AuthenticatedObservabilityRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/optimization': typeof AuthenticatedOptimizationRoute
   '/_authenticated/playbooks': typeof AuthenticatedPlaybooksRoute
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/content-inventory'
     | '/dashboard'
     | '/integrations'
+    | '/observability'
     | '/onboarding'
     | '/optimization'
     | '/playbooks'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/content-inventory'
     | '/dashboard'
     | '/integrations'
+    | '/observability'
     | '/onboarding'
     | '/optimization'
     | '/playbooks'
@@ -313,6 +325,7 @@ export interface FileRouteTypes {
     | '/_authenticated/content-inventory'
     | '/_authenticated/dashboard'
     | '/_authenticated/integrations'
+    | '/_authenticated/observability'
     | '/_authenticated/onboarding'
     | '/_authenticated/optimization'
     | '/_authenticated/playbooks'
@@ -432,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/observability': {
+      id: '/_authenticated/observability'
+      path: '/observability'
+      fullPath: '/observability'
+      preLoaderRoute: typeof AuthenticatedObservabilityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/integrations': {
       id: '/_authenticated/integrations'
       path: '/integrations'
@@ -528,6 +548,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContentInventoryRoute: typeof AuthenticatedContentInventoryRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
+  AuthenticatedObservabilityRoute: typeof AuthenticatedObservabilityRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedOptimizationRoute: typeof AuthenticatedOptimizationRoute
   AuthenticatedPlaybooksRoute: typeof AuthenticatedPlaybooksRoute
@@ -548,6 +569,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContentInventoryRoute: AuthenticatedContentInventoryRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
+  AuthenticatedObservabilityRoute: AuthenticatedObservabilityRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedOptimizationRoute: AuthenticatedOptimizationRoute,
   AuthenticatedPlaybooksRoute: AuthenticatedPlaybooksRoute,
@@ -575,3 +597,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
