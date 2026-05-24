@@ -1,90 +1,101 @@
 
-## Why a phased rollout
+# Pass 13 — End-to-end SEO/GEO/AEO/SERP push
 
-What you're describing is roughly 6–8 weeks of focused product work (job engine + WP + GSC/GA4 + crawler + scoring + topical + AI visibility lab + 10 new pages + CI + docs). If I try to ship it in one turn, every layer ends up half-built — exactly the trap the current plan.md was already trying to escape.
+Three new job types + auto-publish-with-rollback pipeline. Everything runs through the existing `background_jobs` queue, scoped per organization, gated by `wp_revisions` for instant rollback.
 
-Instead I'll ship it in **4 passes**, each one fully working and shippable before the next. You approve this plan, then I execute Pass 1 immediately and stop. After you verify, say "go" and I run Pass 2.
+## 1. Database (single migration)
 
----
+New tables/columns:
+- `auto_apply_settings(organization_id PK, mode text default 'full', exclude_categories jsonb, paused boolean, updated_at)` — per-org kill switch.
+- `serp_snapshots(id, org_id, site_id, keyword, page, position, date, source, created_at)` — daily SERP per tracked keyword (unique on org+keyword+page+date).
+- `geo_aeo_assets(id, org_id, site_id, post_id, kind ['article','faq','howto','product','breadcrumb'], jsonld jsonb, applied_at, applied_changeset_id, hash)` — cached JSON-LD per post+kind.
+- `ai_engine_citations(id, org_id, site_id, query, engine, appears, rank, citation_url, week date, created_at)` — weekly engine citation tracker (unique on org+query+engine+week).
+- `cluster_gap_briefs(id, org_id, site_id, cluster_id, suggested_title, target_keyword, intent, brief_id nullable, status text)` — pillar/cluster gap → brief generation.
+- `wordpress_posts`: add `last_optimized_at timestamptz`, `optimization_score int`.
+- Index: `serp_snapshots(site_id, keyword, date desc)`, `ai_engine_citations(site_id, week desc)`, `geo_aeo_assets(post_id, kind)`.
 
-## Pass 1 — Foundation: job engine + WP + scoring core (this turn)
+New RPC `enqueue_full_optimization(_org_id, _site_id)` — fans out one `audit_apply` job per published post (paginated batches of 50, priority 5).
 
-The thing that unblocks everything else. Without it, no scan/sync/audit/AI test actually runs.
+Cron additions:
+- `02:00 UTC` daily — for each active site, enqueue `serp.track` (top 100 keywords by impressions, last 28d).
+- `04:00 UTC` weekly Mon — enqueue `ai_visibility` deep run (50 GSC-mined queries × 5 engines).
+- `05:00 UTC` daily — enqueue `topical.gap_fill` per site.
+- `06:00 UTC` daily — enqueue `audit_apply` for posts where `last_optimized_at < now() - 14 days` OR null.
 
-**Database migration**
-- Extend `background_jobs`: `retry_count`, `max_retries`, `last_error`, `idempotency_key`, `priority`, `scheduled_at`, `locked_at`, `locked_by`, `next_run_at`. Unique index on `(organization_id, idempotency_key)`.
-- New `job_logs` table (job_id, level, message, metadata, created_at).
-- Extend `wordpress_posts` with `canonical_url`, `seo_plugin` (yoast/rankmath/aioseo/none), `yoast_meta` jsonb.
-- New `wp_revisions` table for rollback metadata (post_id, before, after, applied_by, applied_at, job_id).
-- New `score_breakdowns` table: one row per (post_id, score_type) with `score`, `explanation`, `evidence jsonb`, `recommended_actions jsonb`, `estimated_impact`, `confidence`, `computed_at`.
-- RLS on all new tables (org-scoped via `is_org_member`).
+## 2. Worker job types (worker-jobs.server.ts)
 
-**Worker**
-- Rewrite `src/lib/worker-jobs.server.ts` with: atomic claim via `UPDATE ... RETURNING` + `locked_at`, exponential backoff (`next_run_at = now() + 2^retry_count * 30s`), per-org concurrency cap (max 3 running per org), structured `job_logs` writes, idempotency-key dedup, max_retries → `failed` terminal state.
-- Dispatch table covering all 11 job types listed. Pass 1 ships **real** handlers for: `wp.verify`, `wp.sync`, `content.audit`, `vitals.refresh`. The other 7 are wired as stubs that write a clear "not yet implemented" `job_logs` entry so the UI surfaces something honest.
+### `audit_apply` (core)
+For one post:
+1. Pull open `content_recommendations` for `(site_id, post_id)`.
+2. Run `auditHtml` + classify content with `gemini-2.5-flash-lite`.
+3. Build patch via LLM (`gemini-3-flash-preview`): new `title`, `meta_description`, `headings` adjustments, `internal_links` to add, `alt_text` for images missing it.
+4. Generate JSON-LD (Article + FAQ if Q&A detected + HowTo if steps detected + BreadcrumbList).
+5. Snapshot `before` to `wp_revisions`.
+6. Apply to WordPress via REST API (`runWpSync` push path). Inject JSON-LD into `<head>` via Yoast/RankMath custom field if plugin detected, else as inline `<script>` at top of content.
+7. Insert `content_changesets` row + close related `content_recommendations`.
+8. Update `wordpress_posts.last_optimized_at`, `optimization_score`.
 
-**WordPress integration (production)**
-- `wp.verify`: ping `/wp-json`, detect Yoast/RankMath/AIOSEO from `/wp-json` namespaces, persist on `sites`.
-- `wp.sync`: paginated pull of posts + pages with `context=edit`, canonical extraction, SEO-plugin meta capture, score recomputation via existing `scoreContent`.
-- `applyWordPressFix` already exists — wrap it so every apply writes a `wp_revisions` row + audit log. Drawer already shows diff; verify the rollback button works.
+### `serp.track`
+For each tracked keyword: call GSC API `searchanalytics/query` for last 1d, filter by query, store top page + position into `serp_snapshots`. Compute delta vs 7d-prior, write activity if position improved/dropped ≥3.
 
-**Scoring core**
-- Refactor `content-scoring.ts` to return `{ score, explanation, evidence, recommendedActions, estimatedImpact, confidence }` per dimension and persist to `score_breakdowns`.
-- Ship Technical, ContentQuality, AEO, GEO, InternalLink scorers with explainable breakdowns. The other 5 (EEAT, Topical, Revenue, Decay, Growth) get a v0 implementation that returns a real number from available signals + `confidence: "low"` so the UI never lies about precision.
+### `topical.gap_fill`
+1. For each `topical_clusters` row with `coverage_percent < 80`, find missing cluster pages via existing `topical_cluster_pages`.
+2. For each gap (max 5/run), generate brief via existing `runBriefGenerate` and insert `cluster_gap_briefs` linking to it.
+3. Auto-create `tasks` row assigned to org owner.
 
-**UI**
-- New `ActiveJobsBanner` already exists — make it subscribe to `background_jobs` via realtime + show retry/cancel.
-- Add `ScoreBreakdownCard` component (used by inventory/recommendations).
-- Realtime subscription on jobs page so users see queued → running → succeeded without refresh.
+### `ai_visibility` (extended)
+- Mine queries: top 50 GSC queries with impressions ≥ 100, position 4–20.
+- Engines bumped to 5: `gpt`, `gemini`, `perplexity`, `claude` (mapped to `openai/gpt-5-mini`), `copilot` (mapped to `google/gemini-2.5-flash`).
+- Write weekly rollup into `ai_engine_citations` (one row per query×engine×week).
+- Emit `score_breakdowns` row with citation share.
 
-**Cron**
-- Confirm `pg_cron` schedules `/api/public/cron/worker` every 60s.
+### `geo_aeo.refresh`
+- For each post not in `geo_aeo_assets` or `hash != content_hash`, generate Article+FAQ+HowTo+Breadcrumb JSON-LD, store with hash. Picked up by next `audit_apply`.
 
-**Out of Pass 1 scope:** GSC/GA4 ingestion, full crawler, topical engine, AI visibility lab, 10 new pages, CI workflow. Those are Passes 2–4.
+## 3. Auto-apply pipeline
 
----
+`src/lib/auto-apply.server.ts` — single function `applyOptimization(admin, orgId, postId)`:
+1. Reads `auto_apply_settings` — skip if `paused`.
+2. Calls `audit_apply` logic.
+3. Writes `wp_revisions.before/after`, sets `applied_changeset_id`.
+4. On any WP write failure: catch, store error in `last_error`, do NOT update post — preserves consistency.
+5. Returns `{ applied: bool, changeset_id, rollback_url }`.
 
-## Pass 2 — Data ingestion + technical crawler
+Rollback (existing `wp_revisions` table already has `rolled_back_at`): expose server fn `rollbackRevision(revisionId)` that PUTs the `before` payload back to WP.
 
-- GSC + GA4: real handlers for `gsc.import` / `ga4.import` via the existing Google connector. New tables `gsc_page_query_metrics`, `ga4_page_metrics` keyed by (site, page, query, date). Decay detector = 28-day rolling clicks delta.
-- Crawler: `crawl.site` handler hits sitemap → fetches each URL → stores status, canonical, robots, title/meta lengths, h1/h2, schema types, internal link graph, image alt coverage, redirect chains in a new `page_audits` table.
-- PageSpeed/Vitals: `vitals.refresh` calls PSI API per URL (needs `PAGESPEED_API_KEY` — I'll request via `add_secret` when we get here).
-- New page: **Technical SEO** redesign (replaces current placeholder) with filterable findings table + bulk Apply.
+## 4. Frontend additions (minimal — backend-heavy pass)
 
----
+- `/_authenticated/optimization` route: status of `last_optimized_at` across posts, "Optimize all now" button → calls `enqueue_full_optimization`, shows live progress via realtime on `background_jobs`.
+- Settings panel: `auto_apply_settings` toggle (paused / full / draft-only override).
+- Sidebar "AI Visibility" badge: citation share % from latest `ai_engine_citations`.
+- Recharts sparkline on dashboard: 28-day SERP position trend per top-10 keywords (data from `serp_snapshots`).
+- `wp_revisions` list page: one-click rollback button per row.
 
-## Pass 3 — Topical authority + AI visibility lab + Brief factory
+## 5. AI cost controls
 
-- New tables: `topic_entities`, `query_intent_map`, `competitor_pages` (extend existing `topical_clusters` / `topical_cluster_pages`).
-- `topical.map` handler: LLM-driven pillar/cluster generation from existing inventory + GSC queries + Semrush enrichment (connector already exists).
-- Cannibalization + internal-link opportunity detection → write to existing `internal_link_opportunities`.
-- **AI Visibility Lab** page: prompt library, scheduled runs, multi-engine (Gemini/GPT/Perplexity via Lovable AI Gateway), citation parser, brand/competitor mention extraction, time-series chart.
-- **Brief Factory**: real `brief.generate` handler that consumes audit + topical + GSC signals.
+- `audit_apply` LLM calls cached by `(post_id, content_hash)` in `content_scores` — re-runs skip LLM if hash unchanged.
+- JSON-LD generation: cheap model (`gemini-2.5-flash-lite`), one combined call per post returning all schema types.
+- Batched in worker: up to 10 posts/tick × 10 ticks/min = 100 posts/min throughput per worker.
 
----
+## Files to create/edit
 
-## Pass 4 — Executive UI shell + enterprise hardening
+Create:
+- `src/lib/auto-apply.server.ts`
+- `src/lib/serp-track.server.ts`
+- `src/lib/geo-aeo.server.ts`
+- `src/lib/topical-gap.server.ts`
+- `src/lib/optimization.functions.ts` (server fns: `enqueueFullOptimization`, `rollbackRevision`, `getOptimizationStatus`, `toggleAutoApply`)
+- `src/routes/_authenticated/optimization.tsx`
+- `src/routes/_authenticated/revisions.tsx`
+- 2 migrations (schema + cron)
 
-- Sidebar collapse to 5 outcome-led sections (Command Center / Intelligence / Create / AI Visibility / Settings).
-- New pages: Growth Command Center (prioritized action queue front and center), Site Intelligence, Experiments, Executive Reports (weekly digest).
-- Role permission matrix (viewer / editor / admin / owner) enforced both via RLS helpers and server-fn guards.
-- Audit log taxonomy: standardize `action` strings, add `category`.
-- Usage metering table (`org_usage_daily`) — counts jobs run, AI tokens used, WP applies.
-- CI workflow file already exists; extend with `db:types:check` gating + migration smoke test.
-- Docs: `docs/architecture.md`, `docs/job-engine.md`, `docs/scoring.md`.
+Edit:
+- `src/lib/worker-jobs.server.ts` — add dispatchers for `audit_apply`, `serp.track`, `topical.gap_fill`, `geo_aeo.refresh`; extend `runAiVisibility` with 5 engines + weekly rollup.
+- `src/routes/api/public/cron/worker.ts` — add new job_type cases.
+- `src/components/dashboard/AppSidebar.tsx` — add Optimization + Revisions links + citation badge.
+- `src/routes/_authenticated/dashboard.tsx` — add SERP trend sparklines.
 
----
-
-## Technical notes (for the record)
-
-- All new server-side work goes through `createServerFn` + `requireSupabaseAuth`. No new Supabase Edge Functions.
-- WP app passwords stay encrypted via the existing AES-GCM helper in `wordpress.server.ts`.
-- Service role key never crosses the client boundary.
-- Realtime: enable replication on `background_jobs` and `job_logs` in the Pass 1 migration.
-- Scoring uses Lovable AI Gateway (no user API key needed).
-
----
-
-## What I need from you
-
-Reply **"approve pass 1"** and I'll execute it in the next turn — migration first (you'll get a one-click approval for the SQL), then worker rewrite, WP handlers, scoring refactor, and UI wiring. Reply with edits if you want to reshape any pass before I start.
+## Out of scope (callable in next pass)
+- Multi-language support
+- Competitor backfill from Semrush (would 10x cost; gate behind explicit user trigger)
+- Frontend editor for JSON-LD overrides
