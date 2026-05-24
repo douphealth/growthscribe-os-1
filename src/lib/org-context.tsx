@@ -45,7 +45,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     queryFn: async (): Promise<OrgWithRole[]> => {
       const { data: members, error: mErr } = await supabase
         .from("organization_members")
-        .select("role, organization_id, organizations(*)")
+        .select("role, organization_id, organizations!organization_members_org_fk(*)")
         .eq("user_id", user!.id);
       if (mErr) throw mErr;
       return (members ?? [])
