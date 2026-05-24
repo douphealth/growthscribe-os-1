@@ -24,6 +24,7 @@ import {
   Rocket,
   Cog,
   BookOpen,
+  Zap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -91,6 +92,7 @@ const sections: Array<{
     items: [
       { title: "Approvals", url: "/approvals", icon: CheckCircle2 },
       { title: "Technical SEO", url: "/technical", icon: Wrench },
+      { title: "Optimization", url: "/optimization", icon: Zap },
     ],
   },
   {
