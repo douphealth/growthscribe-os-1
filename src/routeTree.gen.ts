@@ -23,6 +23,7 @@ import { Route as AuthenticatedPlaybooksRouteImport } from './routes/_authentica
 import { Route as AuthenticatedOptimizationRouteImport } from './routes/_authenticated/optimization'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedObservabilityRouteImport } from './routes/_authenticated/observability'
+import { Route as AuthenticatedLiftRouteImport } from './routes/_authenticated/lift'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentInventoryRouteImport } from './routes/_authenticated/content-inventory'
@@ -109,6 +110,11 @@ const AuthenticatedObservabilityRoute =
     path: '/observability',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLiftRoute = AuthenticatedLiftRouteImport.update({
+  id: '/lift',
+  path: '/lift',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedIntegrationsRoute =
   AuthenticatedIntegrationsRouteImport.update({
     id: '/integrations',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
+  '/lift': typeof AuthenticatedLiftRoute
   '/observability': typeof AuthenticatedObservabilityRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/optimization': typeof AuthenticatedOptimizationRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
+  '/lift': typeof AuthenticatedLiftRoute
   '/observability': typeof AuthenticatedObservabilityRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/optimization': typeof AuthenticatedOptimizationRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/_authenticated/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
+  '/_authenticated/lift': typeof AuthenticatedLiftRoute
   '/_authenticated/observability': typeof AuthenticatedObservabilityRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/optimization': typeof AuthenticatedOptimizationRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/content-inventory'
     | '/dashboard'
     | '/integrations'
+    | '/lift'
     | '/observability'
     | '/onboarding'
     | '/optimization'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/content-inventory'
     | '/dashboard'
     | '/integrations'
+    | '/lift'
     | '/observability'
     | '/onboarding'
     | '/optimization'
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | '/_authenticated/content-inventory'
     | '/_authenticated/dashboard'
     | '/_authenticated/integrations'
+    | '/_authenticated/lift'
     | '/_authenticated/observability'
     | '/_authenticated/onboarding'
     | '/_authenticated/optimization'
@@ -452,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedObservabilityRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lift': {
+      id: '/_authenticated/lift'
+      path: '/lift'
+      fullPath: '/lift'
+      preLoaderRoute: typeof AuthenticatedLiftRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/integrations': {
       id: '/_authenticated/integrations'
       path: '/integrations'
@@ -548,6 +567,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContentInventoryRoute: typeof AuthenticatedContentInventoryRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
+  AuthenticatedLiftRoute: typeof AuthenticatedLiftRoute
   AuthenticatedObservabilityRoute: typeof AuthenticatedObservabilityRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedOptimizationRoute: typeof AuthenticatedOptimizationRoute
@@ -569,6 +589,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContentInventoryRoute: AuthenticatedContentInventoryRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
+  AuthenticatedLiftRoute: AuthenticatedLiftRoute,
   AuthenticatedObservabilityRoute: AuthenticatedObservabilityRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedOptimizationRoute: AuthenticatedOptimizationRoute,
