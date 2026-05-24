@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 
 const orgInput = z.object({
   organizationId: z.string().uuid(),
@@ -25,7 +26,7 @@ export type ErrorEventRow = {
   request_id: string | null;
   user_id: string | null;
   error_stack: string | null;
-  context: unknown;
+  context: Json;
 };
 
 export type JobLogRow = {
@@ -36,7 +37,7 @@ export type JobLogRow = {
   message: string;
   request_id: string | null;
   duration_ms: number | null;
-  metadata: unknown;
+  metadata: Json;
 };
 
 export type AuditLogRow = {
@@ -47,7 +48,7 @@ export type AuditLogRow = {
   resource_id: string | null;
   actor_id: string | null;
   ip_address: string | null;
-  metadata: unknown;
+  metadata: Json;
 };
 
 export type ObservabilitySummary = {
