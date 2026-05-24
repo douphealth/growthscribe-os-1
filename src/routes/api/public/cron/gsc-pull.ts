@@ -27,14 +27,7 @@ async function pullOne(
   const start = new Date();
   start.setDate(end.getDate() - DAYS);
   const encoded = encodeURIComponent(conn.property);
-
-  // Idempotent: drop the rolling window before re-inserting.
-  await admin
-    .from("search_console_daily")
-    .delete()
-    .eq("site_id", conn.site_id)
-    .eq("organization_id", conn.organization_id)
-    .gte("date", ymd(start));
+  // No delete: rows upsert on (site_id, date, query, page).
 
   let total = 0;
   let startRow = 0;
@@ -70,15 +63,17 @@ async function pullOne(
       organization_id: conn.organization_id,
       site_id: conn.site_id,
       date: r.keys[0],
-      query: r.keys[1] ?? null,
-      page: r.keys[2] ?? null,
+      query: r.keys[1] ?? "",
+      page: r.keys[2] ?? "",
       clicks: Math.round(r.clicks ?? 0),
       impressions: Math.round(r.impressions ?? 0),
       ctr: r.ctr ?? null,
       position: r.position ?? null,
     }));
     for (let i = 0; i < inserts.length; i += 500) {
-      const { error } = await admin.from("search_console_daily").insert(inserts.slice(i, i + 500));
+      const { error } = await admin
+        .from("search_console_daily")
+        .upsert(inserts.slice(i, i + 500), { onConflict: "site_id,date,query,page" });
       if (error) throw error;
     }
     total += rows.length;

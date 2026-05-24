@@ -608,13 +608,7 @@ export async function runGscImport(admin: Admin, job: JobRow) {
   const ymd = (d: Date) => d.toISOString().slice(0, 10);
   const encoded = encodeURIComponent(property);
 
-  // Idempotent: drop the rolling window before re-inserting.
-  await admin
-    .from("search_console_daily")
-    .delete()
-    .eq("site_id", job.site_id)
-    .eq("organization_id", job.organization_id)
-    .gte("date", ymd(start));
+  // No delete: rows upsert on (site_id, date, query, page).
 
   const ROW_LIMIT = 5000;
   let total = 0;
@@ -648,15 +642,17 @@ export async function runGscImport(admin: Admin, job: JobRow) {
       organization_id: job.organization_id,
       site_id: job.site_id!,
       date: r.keys[0],
-      query: r.keys[1] ?? null,
-      page: r.keys[2] ?? null,
+      query: r.keys[1] ?? "",
+      page: r.keys[2] ?? "",
       clicks: Math.round(r.clicks ?? 0),
       impressions: Math.round(r.impressions ?? 0),
       ctr: r.ctr ?? null,
       position: r.position ?? null,
     }));
     for (let i = 0; i < inserts.length; i += 500) {
-      const { error } = await admin.from("search_console_daily").insert(inserts.slice(i, i + 500));
+      const { error } = await admin
+        .from("search_console_daily")
+        .upsert(inserts.slice(i, i + 500), { onConflict: "site_id,date,query,page" });
       if (error) throw error;
     }
     total += rows.length;

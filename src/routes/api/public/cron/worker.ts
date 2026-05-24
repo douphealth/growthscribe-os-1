@@ -26,7 +26,8 @@ import {
 // flipping status `queued` -> `running` (lost-update tolerant via the WHERE
 // clause), runs the dispatcher, and writes the result back.
 
-const MAX_JOBS_PER_TICK = 5;
+const MAX_JOBS_PER_TICK = 10;
+const MAX_PARALLEL = 5;
 const JOB_TIMEOUT_MS = 90_000;
 const MAX_RUNNING_PER_ORG = 3;
 const BACKOFF_BASE_SECONDS = 30;
@@ -217,16 +218,24 @@ export const Route = createFileRoute("/api/public/cron/worker")({
 
         const results: Array<{ id: string; status: string; error?: string }> = [];
         const workerId = `worker-${crypto.randomUUID().slice(0, 8)}`;
-        for (const c of candidates ?? []) {
-          // Per-org concurrency cap.
-          const { count: runningForOrg } = await admin
-            .from("background_jobs")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", c.organization_id)
-            .eq("status", "running");
-          if ((runningForOrg ?? 0) >= MAX_RUNNING_PER_ORG) continue;
 
-          // Atomic claim: only succeeds if still queued.
+        // Claim phase: atomically flip queued -> running for each candidate,
+        // honoring the per-org concurrency cap. Sequential because each claim
+        // depends on the current running count for that org.
+        const orgRunning = new Map<string, number>();
+        const claimedJobs: typeof candidates = [] as never;
+        for (const c of candidates ?? []) {
+          let runningForOrg = orgRunning.get(c.organization_id);
+          if (runningForOrg === undefined) {
+            const { count } = await admin
+              .from("background_jobs")
+              .select("id", { count: "exact", head: true })
+              .eq("organization_id", c.organization_id)
+              .eq("status", "running");
+            runningForOrg = count ?? 0;
+          }
+          if (runningForOrg >= MAX_RUNNING_PER_ORG) continue;
+
           const { data: claimed, error: clErr } = await admin
             .from("background_jobs")
             .update({
@@ -240,7 +249,13 @@ export const Route = createFileRoute("/api/public/cron/worker")({
             .select("id")
             .maybeSingle();
           if (clErr || !claimed) continue;
+          orgRunning.set(c.organization_id, runningForOrg + 1);
+          claimedJobs.push(c);
+        }
 
+        // Execute phase: run claimed jobs in parallel batches.
+        const runJob = async (c: NonNullable<typeof candidates>[number]) => {
+          // Per-org concurrency cap.
           await admin.from("job_logs").insert({
             job_id: c.id,
             organization_id: c.organization_id,
@@ -324,6 +339,11 @@ export const Route = createFileRoute("/api/public/cron/worker")({
               results.push({ id: c.id, status: "failed", error: message });
             }
           }
+        };
+
+        for (let i = 0; i < claimedJobs.length; i += MAX_PARALLEL) {
+          const batch = claimedJobs.slice(i, i + MAX_PARALLEL);
+          await Promise.allSettled(batch.map(runJob));
         }
 
         return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
