@@ -1,10 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { useOrg } from "@/lib/org-context";
-import type { Database } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getSiteHealthScores } from "@/lib/technical.functions";
+import { getDashboardSummary } from "@/lib/dashboard.functions";
 import { PrioritizedActionQueue } from "@/components/dashboard/PrioritizedActionQueue";
 import { StrikingDistanceCards } from "@/components/dashboard/StrikingDistanceCards";
 
@@ -63,61 +62,30 @@ function DashboardPage() {
   const { currentOrg } = useOrg();
   const orgId = currentOrg?.id ?? null;
 
-  const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats", orgId, user?.id],
+  const fetchSummary = useServerFn(getDashboardSummary);
+  const { data: summary } = useQuery({
+    queryKey: ["dashboard-summary", orgId, user?.id],
     enabled: !!user && !!orgId,
-    queryFn: async () => {
-      const [sites, audits, tasks, briefs] = await Promise.all([
-        supabase
-          .from("sites")
-          .select("id, monthly_clicks", { count: "exact" })
-          .eq("organization_id", orgId!),
-        supabase
-          .from("content_audits")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId!),
-        supabase
-          .from("tasks")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId!)
-          .neq("status", "published")
-          .neq("status", "archived"),
-        supabase
-          .from("content_briefs")
-          .select("id", { count: "exact", head: true })
-          .eq("organization_id", orgId!),
-      ]);
-      const totalClicks = (sites.data ?? []).reduce((s, r) => s + (r.monthly_clicks ?? 0), 0);
-      return {
-        sites: sites.count ?? 0,
-        audits: audits.count ?? 0,
-        openTasks: tasks.count ?? 0,
-        briefs: briefs.count ?? 0,
-        totalClicks,
-      };
-    },
+    queryFn: () => fetchSummary({ data: { organizationId: orgId! } }),
+    staleTime: 60_000,
   });
-
-  type Activity = Database["public"]["Tables"]["activities"]["Row"];
-  const { data: activities } = useQuery({
-    queryKey: ["activities", orgId, user?.id],
-    enabled: !!user && !!orgId,
-    queryFn: async (): Promise<Activity[]> => {
-      const { data } = await supabase
-        .from("activities")
-        .select("*")
-        .eq("organization_id", orgId!)
-        .order("created_at", { ascending: false })
-        .limit(8);
-      return data ?? [];
-    },
-  });
+  const stats = summary
+    ? {
+        sites: summary.sites,
+        audits: summary.audits,
+        openTasks: summary.open_tasks,
+        briefs: summary.briefs,
+        totalClicks: summary.monthly_clicks,
+      }
+    : undefined;
+  const activities = summary?.recent_activities ?? [];
 
   const fetchHealth = useServerFn(getSiteHealthScores);
   const { data: health } = useQuery({
     queryKey: ["site-health", orgId],
     enabled: !!orgId,
     queryFn: () => fetchHealth({ data: { organizationId: orgId! } }),
+    staleTime: 60_000,
   });
 
   const firstName = (profile?.display_name ?? "").split(" ")[0] || "there";
