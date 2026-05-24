@@ -16,6 +16,7 @@ const ALLOWED_WP_WRITERS = new Set<string>([
   "src/lib/auto-apply.server.ts", // snapshots wp_revisions + respects auto_apply_settings
   "src/lib/approvals.functions.ts", // requires a `pending` approval_request
   "src/lib/seo-automation.functions.ts", // gated server fns that build wp_revisions
+  "src/lib/technical.functions.ts", // applyWordpressFix: user-invoked single-shot apply
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {
