@@ -2089,6 +2089,43 @@ export type Database = {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
+      claim_jobs: {
+        Args: { _max_jobs: number; _max_per_org: number; _worker_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          error: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string | null
+          items_processed: number
+          job_type: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number
+          next_run_at: string
+          organization_id: string
+          payload: Json
+          priority: number
+          result: Json | null
+          retry_count: number
+          scheduled_at: string
+          site_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          total_items: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "background_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      cleanup_stale_data: { Args: never; Returns: Json }
+      get_dashboard_summary: { Args: { _org_id: string }; Returns: Json }
       has_org_role: {
         Args: {
           _org_id: string

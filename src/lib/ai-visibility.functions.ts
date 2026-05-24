@@ -22,7 +22,7 @@ type Engine = (typeof ENGINES)[number];
 
 const ENGINE_MODELS: Record<Engine, string> = {
   gpt: "openai/gpt-5-mini",
-  gemini: "google/gemini-2.5-flash",
+  gemini: "google/gemini-2.5-flash-lite",
   perplexity: "google/gemini-2.5-pro", // proxy via gateway
 };
 
@@ -243,7 +243,7 @@ Content (truncated): ${(post.content_text ?? post.content_html ?? "").slice(0, 4
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: sys },
           { role: "user", content: user },

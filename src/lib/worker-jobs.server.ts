@@ -503,8 +503,8 @@ export async function runBriefGenerate(admin: Admin, job: JobRow) {
 const ENGINE_MODELS: Record<string, string> = {
   gpt: "openai/gpt-5-mini",
   chatgpt: "openai/gpt-5-mini",
-  gemini: "google/gemini-2.5-flash",
-  google_aio: "google/gemini-2.5-flash",
+  gemini: "google/gemini-2.5-flash-lite",
+  google_aio: "google/gemini-2.5-flash-lite",
   perplexity: "google/gemini-2.5-pro",
   claude: "openai/gpt-5-mini",
 };
@@ -515,7 +515,7 @@ export async function runAiVisibility(admin: Admin, job: JobRow) {
   if (!job.site_id) throw new Error("ai_visibility requires site_id");
   const payload = (job.payload ?? {}) as { query?: string; engine?: string };
   if (!payload.query || !payload.engine) throw new Error("ai_visibility requires query+engine");
-  const model = ENGINE_MODELS[payload.engine] ?? "google/gemini-2.5-flash";
+  const model = ENGINE_MODELS[payload.engine] ?? "google/gemini-2.5-flash-lite";
 
   const { data: site } = await admin
     .from("sites")

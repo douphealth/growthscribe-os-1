@@ -204,58 +204,21 @@ export const Route = createFileRoute("/api/public/cron/worker")({
           .eq("status", "running")
           .lt("started_at", stuckCutoff);
 
-        const { data: candidates, error: cErr } = await admin
-          .from("background_jobs")
-          .select("id, job_type, organization_id, site_id, payload, created_by, retry_count, max_retries")
-          .eq("status", "queued")
-          .lte("next_run_at", new Date().toISOString())
-          .order("priority", { ascending: false })
-          .order("next_run_at", { ascending: true })
-          .limit(MAX_JOBS_PER_TICK);
+        const workerId = `worker-${crypto.randomUUID().slice(0, 8)}`;
+        const results: Array<{ id: string; status: string; error?: string }> = [];
+
+        // Atomic batch claim using SKIP LOCKED — no races, no per-org probe.
+        const { data: claimedJobs, error: cErr } = await admin.rpc("claim_jobs", {
+          _worker_id: workerId,
+          _max_jobs: MAX_JOBS_PER_TICK,
+          _max_per_org: MAX_RUNNING_PER_ORG,
+        });
         if (cErr) {
           return new Response(JSON.stringify({ error: cErr.message }), { status: 500 });
         }
 
-        const results: Array<{ id: string; status: string; error?: string }> = [];
-        const workerId = `worker-${crypto.randomUUID().slice(0, 8)}`;
-
-        // Claim phase: atomically flip queued -> running for each candidate,
-        // honoring the per-org concurrency cap. Sequential because each claim
-        // depends on the current running count for that org.
-        const orgRunning = new Map<string, number>();
-        const claimedJobs: typeof candidates = [] as never;
-        for (const c of candidates ?? []) {
-          let runningForOrg = orgRunning.get(c.organization_id);
-          if (runningForOrg === undefined) {
-            const { count } = await admin
-              .from("background_jobs")
-              .select("id", { count: "exact", head: true })
-              .eq("organization_id", c.organization_id)
-              .eq("status", "running");
-            runningForOrg = count ?? 0;
-          }
-          if (runningForOrg >= MAX_RUNNING_PER_ORG) continue;
-
-          const { data: claimed, error: clErr } = await admin
-            .from("background_jobs")
-            .update({
-              status: "running",
-              started_at: new Date().toISOString(),
-              locked_at: new Date().toISOString(),
-              locked_by: workerId,
-            })
-            .eq("id", c.id)
-            .eq("status", "queued")
-            .select("id")
-            .maybeSingle();
-          if (clErr || !claimed) continue;
-          orgRunning.set(c.organization_id, runningForOrg + 1);
-          claimedJobs.push(c);
-        }
-
         // Execute phase: run claimed jobs in parallel batches.
-        const runJob = async (c: NonNullable<typeof candidates>[number]) => {
-          // Per-org concurrency cap.
+        const runJob = async (c: NonNullable<typeof claimedJobs>[number]) => {
           await admin.from("job_logs").insert({
             job_id: c.id,
             organization_id: c.organization_id,
