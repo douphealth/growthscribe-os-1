@@ -2,21 +2,23 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
-import { log, runWithLogContext, newRequestId } from "@/lib/logger.server";
+
+function newRequestId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  }
+}
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   const requestId = newRequestId();
+  // Server-only: lazily load the structured logger inside the handler so the
+  // client bundle never includes node:async_hooks.
+  const { runWithLogContext, log } = await import("@/lib/logger.server");
   return runWithLogContext({ request_id: requestId, source: "server" }, async () => {
     try {
-      const result = await next();
-      // Best-effort: tag the response with the request id for client correlation.
-      if (result && typeof result === "object" && "response" in result) {
-        const r = (result as { response?: Response }).response;
-        if (r && r.headers && typeof r.headers.set === "function") {
-          r.headers.set("x-request-id", requestId);
-        }
-      }
-      return result;
+      return await next();
     } catch (error) {
       if (error != null && typeof error === "object" && "statusCode" in error) {
         throw error;
