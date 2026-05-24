@@ -1,0 +1,1 @@
+REVOKE SELECT ON public.gsc_page_rollup_28d FROM authenticated, anon;
