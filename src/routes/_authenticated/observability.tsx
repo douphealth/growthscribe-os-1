@@ -396,3 +396,25 @@ function StatCard({
     </Card>
   );
 }
+
+function SloCard({
+  label,
+  value,
+  threshold,
+  ok,
+}: {
+  label: string;
+  value: string | number;
+  threshold: string | number;
+  ok: boolean;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</p>
+        <p className={`mt-1 text-2xl font-semibold tabular-nums ${ok ? "text-foreground" : "text-destructive"}`}>{value}</p>
+        <p className="mt-1 text-[10px] text-muted-foreground">threshold: {threshold}</p>
+      </CardContent>
+    </Card>
+  );
+}
