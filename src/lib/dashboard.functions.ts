@@ -16,7 +16,6 @@ export type DashboardSummary = {
     description: string | null;
     link: string | null;
     created_at: string;
-    metadata: unknown;
   }>;
   active_jobs: Array<{
     id: string;
