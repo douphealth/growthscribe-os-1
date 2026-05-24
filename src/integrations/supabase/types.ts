@@ -1422,9 +1422,9 @@ export type Database = {
           id: string
           impressions: number
           organization_id: string
-          page: string | null
+          page: string
           position: number | null
-          query: string | null
+          query: string
           site_id: string
         }
         Insert: {
@@ -1437,9 +1437,9 @@ export type Database = {
           id?: string
           impressions?: number
           organization_id: string
-          page?: string | null
+          page?: string
           position?: number | null
-          query?: string | null
+          query?: string
           site_id: string
         }
         Update: {
@@ -1452,9 +1452,9 @@ export type Database = {
           id?: string
           impressions?: number
           organization_id?: string
-          page?: string | null
+          page?: string
           position?: number | null
-          query?: string | null
+          query?: string
           site_id?: string
         }
         Relationships: []
@@ -2071,7 +2071,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      gsc_page_rollup_28d: {
+        Row: {
+          clicks: number | null
+          ctr: number | null
+          impressions: number | null
+          organization_id: string | null
+          page: string | null
+          position: number | null
+          site_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_create_initial_org_membership: {
@@ -2103,6 +2114,7 @@ export type Database = {
         Returns: boolean
       }
       org_has_no_members: { Args: { _org_id: string }; Returns: boolean }
+      refresh_gsc_page_rollup_28d: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "owner" | "admin" | "editor" | "analyst" | "viewer"
