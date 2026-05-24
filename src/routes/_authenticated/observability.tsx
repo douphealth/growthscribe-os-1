@@ -13,6 +13,8 @@ import {
   getJobLogs,
   getAuditLogs,
   getObservabilitySummary,
+  getAiCostSummary,
+  getSiteHealthSummary,
 } from "@/lib/observability.functions";
 
 export const Route = createFileRoute("/_authenticated/observability")({
@@ -70,6 +72,23 @@ function Page() {
         data: { organizationId: orgId!, since: since === "1h" ? "24h" : since, limit: 200 },
       }),
     enabled: !!orgId,
+  });
+
+  const aiCostFn = useServerFn(getAiCostSummary);
+  const healthFn = useServerFn(getSiteHealthSummary);
+  const aiWindow: "24h" | "7d" | "30d" =
+    since === "1h" || since === "24h" ? "24h" : since === "7d" ? "7d" : "30d";
+  const healthWindow: "24h" | "7d" = since === "7d" || since === "30d" ? "7d" : "24h";
+  const aiCost = useQuery({
+    queryKey: ["obs-ai-cost", orgId, aiWindow],
+    enabled: !!orgId,
+    queryFn: () => aiCostFn({ data: { organizationId: orgId!, window: aiWindow } }),
+  });
+  const health = useQuery({
+    queryKey: ["obs-health", orgId, healthWindow],
+    enabled: !!orgId,
+    refetchInterval: 30_000,
+    queryFn: () => healthFn({ data: { organizationId: orgId!, window: healthWindow } }),
   });
 
   if (!orgId) {
@@ -162,6 +181,8 @@ function Page() {
           <TabsTrigger value="errors">Error Events</TabsTrigger>
           <TabsTrigger value="jobs">Job Logs</TabsTrigger>
           <TabsTrigger value="audit">Audit Trail</TabsTrigger>
+          <TabsTrigger value="ai-cost">AI Cost</TabsTrigger>
+          <TabsTrigger value="slo">Site Health</TabsTrigger>
         </TabsList>
 
         <TabsContent value="errors">
@@ -249,6 +270,99 @@ function Page() {
                     </li>
                   ))}
                 </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai-cost">
+          <Card>
+            <CardContent className="p-4">
+              {aiCost.isLoading ? (
+                <p className="text-xs text-muted-foreground">Loading…</p>
+              ) : !aiCost.data || aiCost.data.total_events === 0 ? (
+                <p className="text-xs text-muted-foreground">No AI usage events in window.</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <StatCard label="Events" value={aiCost.data.total_events} />
+                    <StatCard label="Tokens" value={aiCost.data.total_tokens} />
+                    <StatCard label="Cost (USD)" value={aiCost.data.total_cost_usd} />
+                    <StatCard label="Units billed" value={aiCost.data.total_quantity} />
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">By model</p>
+                      <ul className="space-y-1 text-xs">
+                        {aiCost.data.by_model.map((m) => (
+                          <li key={m.model} className="flex items-center justify-between gap-2">
+                            <span className="truncate font-mono">{m.model}</span>
+                            <span className="text-muted-foreground tabular-nums">{m.tokens.toLocaleString()} tok · ${m.cost_usd}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">By event type</p>
+                      <ul className="space-y-1 text-xs">
+                        {aiCost.data.by_event_type.map((t) => (
+                          <li key={t.event_type} className="flex items-center justify-between gap-2">
+                            <span className="truncate font-mono">{t.event_type}</span>
+                            <span className="text-muted-foreground tabular-nums">×{t.events}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="slo">
+          <Card>
+            <CardContent className="p-4">
+              {health.isLoading || !health.data ? (
+                <p className="text-xs text-muted-foreground">Loading…</p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={health.data.slo.overall_ok ? "outline" : "destructive"}>
+                      {health.data.slo.overall_ok ? "All SLOs healthy" : "SLO breach"}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground">window: {health.data.window}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <SloCard
+                      label="Error rate / hr"
+                      value={health.data.error_rate_per_hour}
+                      threshold={health.data.thresholds.error_rate_per_hour}
+                      ok={health.data.slo.error_rate_ok}
+                    />
+                    <SloCard
+                      label="Job failure rate"
+                      value={(health.data.job_failure_rate * 100).toFixed(2) + "%"}
+                      threshold={(health.data.thresholds.job_failure_rate * 100).toFixed(0) + "%"}
+                      ok={health.data.slo.job_failure_rate_ok}
+                    />
+                    <SloCard
+                      label="p95 job duration"
+                      value={health.data.p95_duration_ms != null ? `${health.data.p95_duration_ms} ms` : "—"}
+                      threshold={`${health.data.thresholds.p95_duration_ms} ms`}
+                      ok={health.data.slo.p95_ok}
+                    />
+                    <SloCard
+                      label="Jobs run"
+                      value={`${health.data.jobs_total - health.data.jobs_failed}/${health.data.jobs_total}`}
+                      threshold="ok / total"
+                      ok
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Thresholds are baseline defaults for enterprise-grade reliability. Tune in code under <code>observability.functions.ts</code>.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
