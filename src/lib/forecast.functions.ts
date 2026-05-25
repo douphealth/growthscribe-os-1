@@ -280,6 +280,7 @@ export const getForecast = createServerFn({ method: "POST" })
 
     // Count open recommendations and suggest lift %
     let openCount = 0;
+    let suggestedLift = 0;
     {
       let rq = supabase
         .from("content_recommendations")
@@ -294,7 +295,7 @@ export const getForecast = createServerFn({ method: "POST" })
         const s = String(r.severity);
         return a + (s === "critical" ? 1.5 : s === "high" ? 1 : 0.4);
       }, 0);
-      var suggestedLift = Math.min(18, Math.round(sevWeight * 0.6 * 10) / 10);
+      suggestedLift = Math.min(18, Math.round(sevWeight * 0.6 * 10) / 10);
     }
 
     function build(
