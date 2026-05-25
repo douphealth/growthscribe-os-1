@@ -858,6 +858,100 @@ export type Database = {
           },
         ]
       }
+      content_drafts: {
+        Row: {
+          brief_id: string | null
+          citations: Json
+          content_html: string
+          content_text: string | null
+          created_at: string
+          created_by: string
+          id: string
+          meta_description: string | null
+          model: string | null
+          organization_id: string
+          persona: string | null
+          published_at: string | null
+          site_id: string
+          status: string
+          target_keyword: string | null
+          title: string
+          tone: string
+          updated_at: string
+          word_count: number
+          wp_link: string | null
+          wp_post_id: number | null
+        }
+        Insert: {
+          brief_id?: string | null
+          citations?: Json
+          content_html?: string
+          content_text?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          meta_description?: string | null
+          model?: string | null
+          organization_id: string
+          persona?: string | null
+          published_at?: string | null
+          site_id: string
+          status?: string
+          target_keyword?: string | null
+          title: string
+          tone?: string
+          updated_at?: string
+          word_count?: number
+          wp_link?: string | null
+          wp_post_id?: number | null
+        }
+        Update: {
+          brief_id?: string | null
+          citations?: Json
+          content_html?: string
+          content_text?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          meta_description?: string | null
+          model?: string | null
+          organization_id?: string
+          persona?: string | null
+          published_at?: string | null
+          site_id?: string
+          status?: string
+          target_keyword?: string | null
+          title?: string
+          tone?: string
+          updated_at?: string
+          word_count?: number
+          wp_link?: string | null
+          wp_post_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_drafts_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "content_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_drafts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_drafts_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_recommendations: {
         Row: {
           audit_id: string | null
