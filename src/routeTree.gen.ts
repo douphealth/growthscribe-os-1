@@ -19,6 +19,7 @@ import { Route as AuthenticatedTechnicalRouteImport } from './routes/_authentica
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSitesRouteImport } from './routes/_authenticated/sites'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedRolloutsRouteImport } from './routes/_authenticated/rollouts'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedPlaybooksRouteImport } from './routes/_authenticated/playbooks'
 import { Route as AuthenticatedOptimizationRouteImport } from './routes/_authenticated/optimization'
@@ -86,6 +87,11 @@ const AuthenticatedSitesRoute = AuthenticatedSitesRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRolloutsRoute = AuthenticatedRolloutsRouteImport.update({
+  id: '/rollouts',
+  path: '/rollouts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRecommendationsRoute =
@@ -203,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/optimization': typeof AuthenticatedOptimizationRoute
   '/playbooks': typeof AuthenticatedPlaybooksRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/rollouts': typeof AuthenticatedRolloutsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/tasks': typeof AuthenticatedTasksRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/optimization': typeof AuthenticatedOptimizationRoute
   '/playbooks': typeof AuthenticatedPlaybooksRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/rollouts': typeof AuthenticatedRolloutsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/sites': typeof AuthenticatedSitesRoute
   '/tasks': typeof AuthenticatedTasksRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/optimization': typeof AuthenticatedOptimizationRoute
   '/_authenticated/playbooks': typeof AuthenticatedPlaybooksRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/_authenticated/rollouts': typeof AuthenticatedRolloutsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/sites': typeof AuthenticatedSitesRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/optimization'
     | '/playbooks'
     | '/recommendations'
+    | '/rollouts'
     | '/settings'
     | '/sites'
     | '/tasks'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/optimization'
     | '/playbooks'
     | '/recommendations'
+    | '/rollouts'
     | '/settings'
     | '/sites'
     | '/tasks'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/_authenticated/optimization'
     | '/_authenticated/playbooks'
     | '/_authenticated/recommendations'
+    | '/_authenticated/rollouts'
     | '/_authenticated/settings'
     | '/_authenticated/sites'
     | '/_authenticated/tasks'
@@ -446,6 +458,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rollouts': {
+      id: '/_authenticated/rollouts'
+      path: '/rollouts'
+      fullPath: '/rollouts'
+      preLoaderRoute: typeof AuthenticatedRolloutsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/recommendations': {
@@ -592,6 +611,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOptimizationRoute: typeof AuthenticatedOptimizationRoute
   AuthenticatedPlaybooksRoute: typeof AuthenticatedPlaybooksRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
+  AuthenticatedRolloutsRoute: typeof AuthenticatedRolloutsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSitesRoute: typeof AuthenticatedSitesRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
@@ -615,6 +635,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOptimizationRoute: AuthenticatedOptimizationRoute,
   AuthenticatedPlaybooksRoute: AuthenticatedPlaybooksRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
+  AuthenticatedRolloutsRoute: AuthenticatedRolloutsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSitesRoute: AuthenticatedSitesRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,

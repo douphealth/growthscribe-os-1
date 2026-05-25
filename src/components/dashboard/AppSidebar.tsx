@@ -96,6 +96,7 @@ const sections: Array<{
       { title: "Approvals", url: "/approvals", icon: CheckCircle2 },
       { title: "Technical SEO", url: "/technical", icon: Wrench },
       { title: "Optimization", url: "/optimization", icon: Zap },
+      { title: "Bulk Rollouts", url: "/rollouts", icon: Rocket },
       { title: "Lift", url: "/lift", icon: TrendingUp },
       { title: "Core Web Vitals", url: "/vitals", icon: Gauge },
     ],
