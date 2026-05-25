@@ -100,6 +100,7 @@ const sections: Array<{
       { title: "Optimization", url: "/optimization", icon: Zap },
       { title: "Bulk Rollouts", url: "/rollouts", icon: Rocket },
       { title: "Lift", url: "/lift", icon: TrendingUp },
+      { title: "Forecast", url: "/forecast", icon: Activity },
       { title: "Core Web Vitals", url: "/vitals", icon: Gauge },
     ],
   },
