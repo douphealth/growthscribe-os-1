@@ -28,6 +28,7 @@ import {
   Activity,
   Gauge,
 } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { TrendingUp } from "lucide-react";
 import {
   Sidebar,
@@ -86,6 +87,7 @@ const sections: Array<{
       { title: "Recommendations", url: "/recommendations", icon: Lightbulb },
       { title: "Playbooks", url: "/playbooks", icon: BookOpen },
       { title: "Content Briefs", url: "/briefs", icon: FileText },
+      { title: "AI Writer", url: "/writer", icon: PenLine },
       { title: "Tasks", url: "/tasks", icon: ListTodo },
     ],
   },
