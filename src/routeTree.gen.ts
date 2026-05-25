@@ -28,6 +28,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedObservabilityRouteImport } from './routes/_authenticated/observability'
 import { Route as AuthenticatedLiftRouteImport } from './routes/_authenticated/lift'
 import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
+import { Route as AuthenticatedForecastRouteImport } from './routes/_authenticated/forecast'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentInventoryRouteImport } from './routes/_authenticated/content-inventory'
 import { Route as AuthenticatedBriefsRouteImport } from './routes/_authenticated/briefs'
@@ -139,6 +140,11 @@ const AuthenticatedIntegrationsRoute =
     path: '/integrations',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedForecastRoute = AuthenticatedForecastRouteImport.update({
+  id: '/forecast',
+  path: '/forecast',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/briefs': typeof AuthenticatedBriefsRoute
   '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/forecast': typeof AuthenticatedForecastRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/lift': typeof AuthenticatedLiftRoute
   '/observability': typeof AuthenticatedObservabilityRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/briefs': typeof AuthenticatedBriefsRoute
   '/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/forecast': typeof AuthenticatedForecastRoute
   '/integrations': typeof AuthenticatedIntegrationsRoute
   '/lift': typeof AuthenticatedLiftRoute
   '/observability': typeof AuthenticatedObservabilityRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/_authenticated/briefs': typeof AuthenticatedBriefsRoute
   '/_authenticated/content-inventory': typeof AuthenticatedContentInventoryRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/forecast': typeof AuthenticatedForecastRoute
   '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/lift': typeof AuthenticatedLiftRoute
   '/_authenticated/observability': typeof AuthenticatedObservabilityRoute
@@ -305,6 +314,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/content-inventory'
     | '/dashboard'
+    | '/forecast'
     | '/integrations'
     | '/lift'
     | '/observability'
@@ -336,6 +346,7 @@ export interface FileRouteTypes {
     | '/briefs'
     | '/content-inventory'
     | '/dashboard'
+    | '/forecast'
     | '/integrations'
     | '/lift'
     | '/observability'
@@ -368,6 +379,7 @@ export interface FileRouteTypes {
     | '/_authenticated/briefs'
     | '/_authenticated/content-inventory'
     | '/_authenticated/dashboard'
+    | '/_authenticated/forecast'
     | '/_authenticated/integrations'
     | '/_authenticated/lift'
     | '/_authenticated/observability'
@@ -535,6 +547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/forecast': {
+      id: '/_authenticated/forecast'
+      path: '/forecast'
+      fullPath: '/forecast'
+      preLoaderRoute: typeof AuthenticatedForecastRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -623,6 +642,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBriefsRoute: typeof AuthenticatedBriefsRoute
   AuthenticatedContentInventoryRoute: typeof AuthenticatedContentInventoryRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedForecastRoute: typeof AuthenticatedForecastRoute
   AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedLiftRoute: typeof AuthenticatedLiftRoute
   AuthenticatedObservabilityRoute: typeof AuthenticatedObservabilityRoute
@@ -648,6 +668,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBriefsRoute: AuthenticatedBriefsRoute,
   AuthenticatedContentInventoryRoute: AuthenticatedContentInventoryRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedForecastRoute: AuthenticatedForecastRoute,
   AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedLiftRoute: AuthenticatedLiftRoute,
   AuthenticatedObservabilityRoute: AuthenticatedObservabilityRoute,
@@ -681,3 +702,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
