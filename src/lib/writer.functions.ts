@@ -7,6 +7,53 @@ import { callLovableAIStructured } from "./ai-gateway";
 
 type SB = SupabaseClient<Database>;
 
+type EncryptedSecret = { v: 1; alg: "AES-GCM"; iv: string; ciphertext: string };
+function isEncryptedSecret(value: unknown): value is EncryptedSecret {
+  if (!value || typeof value !== "object") return false;
+  const m = value as Partial<EncryptedSecret>;
+  return m.v === 1 && m.alg === "AES-GCM" && typeof m.iv === "string" && typeof m.ciphertext === "string";
+}
+function fromB64(v: string) {
+  return new Uint8Array(Buffer.from(v, "base64"));
+}
+async function encryptionKey() {
+  const material = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.LOVABLE_API_KEY;
+  if (!material) throw new Error("Server credential encryption key is not configured");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
+  return crypto.subtle.importKey("raw", digest, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+async function decryptSecret(secret: EncryptedSecret): Promise<string> {
+  const plaintext = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: fromB64(secret.iv) },
+    await encryptionKey(),
+    fromB64(secret.ciphertext),
+  );
+  return new TextDecoder().decode(plaintext);
+}
+async function loadWpConnection(
+  supabase: SB,
+  organizationId: string,
+  siteId: string,
+): Promise<{ url: string; username: string; appPassword: string } | null> {
+  const { data, error } = await supabase
+    .from("integration_connections")
+    .select("config")
+    .eq("organization_id", organizationId)
+    .eq("site_id", siteId)
+    .eq("provider", "wordpress")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const cfg = (data.config ?? {}) as Record<string, unknown>;
+  const url = typeof cfg.url === "string" ? cfg.url.replace(/\/+$/, "") : null;
+  const username = typeof cfg.username === "string" ? cfg.username : null;
+  const appPassword = isEncryptedSecret(cfg.encrypted_app_password)
+    ? await decryptSecret(cfg.encrypted_app_password)
+    : null;
+  if (!url || !username || !appPassword) return null;
+  return { url, username, appPassword };
+}
+
 async function assertMember(supabase: SB, userId: string, organizationId: string) {
   const { data, error } = await supabase
     .from("organization_members")
