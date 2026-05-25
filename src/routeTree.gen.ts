@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWriterRouteImport } from './routes/_authenticated/writer'
 import { Route as AuthenticatedVitalsRouteImport } from './routes/_authenticated/vitals'
 import { Route as AuthenticatedTopicalMapsRouteImport } from './routes/_authenticated/topical-maps'
 import { Route as AuthenticatedTechnicalRouteImport } from './routes/_authenticated/technical'
@@ -57,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedWriterRoute = AuthenticatedWriterRouteImport.update({
+  id: '/writer',
+  path: '/writer',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedVitalsRoute = AuthenticatedVitalsRouteImport.update({
   id: '/vitals',
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
   '/vitals': typeof AuthenticatedVitalsRoute
+  '/writer': typeof AuthenticatedWriterRoute
   '/api/public/errors': typeof ApiPublicErrorsRoute
   '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/technical': typeof AuthenticatedTechnicalRoute
   '/topical-maps': typeof AuthenticatedTopicalMapsRoute
   '/vitals': typeof AuthenticatedVitalsRoute
+  '/writer': typeof AuthenticatedWriterRoute
   '/api/public/errors': typeof ApiPublicErrorsRoute
   '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
@@ -278,6 +286,7 @@ export interface FileRoutesById {
   '/_authenticated/technical': typeof AuthenticatedTechnicalRoute
   '/_authenticated/topical-maps': typeof AuthenticatedTopicalMapsRoute
   '/_authenticated/vitals': typeof AuthenticatedVitalsRoute
+  '/_authenticated/writer': typeof AuthenticatedWriterRoute
   '/api/public/errors': typeof ApiPublicErrorsRoute
   '/api/public/cron/gsc-pull': typeof ApiPublicCronGscPullRoute
   '/api/public/cron/scan': typeof ApiPublicCronScanRoute
@@ -310,6 +319,7 @@ export interface FileRouteTypes {
     | '/technical'
     | '/topical-maps'
     | '/vitals'
+    | '/writer'
     | '/api/public/errors'
     | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/technical'
     | '/topical-maps'
     | '/vitals'
+    | '/writer'
     | '/api/public/errors'
     | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
@@ -371,6 +382,7 @@ export interface FileRouteTypes {
     | '/_authenticated/technical'
     | '/_authenticated/topical-maps'
     | '/_authenticated/vitals'
+    | '/_authenticated/writer'
     | '/api/public/errors'
     | '/api/public/cron/gsc-pull'
     | '/api/public/cron/scan'
@@ -417,6 +429,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/writer': {
+      id: '/_authenticated/writer'
+      path: '/writer'
+      fullPath: '/writer'
+      preLoaderRoute: typeof AuthenticatedWriterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/vitals': {
       id: '/_authenticated/vitals'
@@ -618,6 +637,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTechnicalRoute: typeof AuthenticatedTechnicalRoute
   AuthenticatedTopicalMapsRoute: typeof AuthenticatedTopicalMapsRoute
   AuthenticatedVitalsRoute: typeof AuthenticatedVitalsRoute
+  AuthenticatedWriterRoute: typeof AuthenticatedWriterRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -642,6 +662,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTechnicalRoute: AuthenticatedTechnicalRoute,
   AuthenticatedTopicalMapsRoute: AuthenticatedTopicalMapsRoute,
   AuthenticatedVitalsRoute: AuthenticatedVitalsRoute,
+  AuthenticatedWriterRoute: AuthenticatedWriterRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -660,13 +681,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
