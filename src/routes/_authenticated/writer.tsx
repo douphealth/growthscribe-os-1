@@ -208,7 +208,7 @@ function WriterPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={PenLine}
+        eyebrow="Writer"
         title="AI Content Writer"
         description="Turn approved briefs into ready-to-publish drafts. Edit, rewrite, and push to WordPress."
       />
