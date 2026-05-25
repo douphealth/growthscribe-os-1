@@ -2038,6 +2038,119 @@ export type Database = {
         }
         Relationships: []
       }
+      rollout_items: {
+        Row: {
+          applied_at: string | null
+          changeset_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          job_id: string | null
+          organization_id: string
+          post_id: string | null
+          recommendation_id: string | null
+          rollout_id: string
+          stage: string
+          status: string
+        }
+        Insert: {
+          applied_at?: string | null
+          changeset_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          organization_id: string
+          post_id?: string | null
+          recommendation_id?: string | null
+          rollout_id: string
+          stage?: string
+          status?: string
+        }
+        Update: {
+          applied_at?: string | null
+          changeset_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          organization_id?: string
+          post_id?: string | null
+          recommendation_id?: string | null
+          rollout_id?: string
+          stage?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rollout_items_rollout_id_fkey"
+            columns: ["rollout_id"]
+            isOneToOne: false
+            referencedRelation: "rollouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rollouts: {
+        Row: {
+          applied_count: number
+          baseline_captured_at: string | null
+          baseline_clicks: number | null
+          created_at: string
+          created_by: string
+          current_stage: string
+          failed_count: number
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          regression_threshold_pct: number
+          rolled_back_count: number
+          site_id: string
+          status: string
+          total_count: number
+          updated_at: string
+        }
+        Insert: {
+          applied_count?: number
+          baseline_captured_at?: string | null
+          baseline_clicks?: number | null
+          created_at?: string
+          created_by: string
+          current_stage?: string
+          failed_count?: number
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          regression_threshold_pct?: number
+          rolled_back_count?: number
+          site_id: string
+          status?: string
+          total_count?: number
+          updated_at?: string
+        }
+        Update: {
+          applied_count?: number
+          baseline_captured_at?: string | null
+          baseline_clicks?: number | null
+          created_at?: string
+          created_by?: string
+          current_stage?: string
+          failed_count?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          regression_threshold_pct?: number
+          rolled_back_count?: number
+          site_id?: string
+          status?: string
+          total_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       score_breakdowns: {
         Row: {
           computed_at: string
