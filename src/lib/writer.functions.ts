@@ -273,26 +273,25 @@ export const publishDraftToWordpress = createServerFn({ method: "POST" })
       .single();
     if (error || !draft) throw new Error("Draft not found");
 
-    const { data: conn } = await supabase
-      .from("integration_connections")
-      .select("id")
-      .eq("organization_id", data.organizationId)
-      .eq("site_id", draft.site_id)
-      .eq("provider", "wordpress")
-      .maybeSingle();
+    const conn = await loadWpConnection(supabase, data.organizationId, draft.site_id);
     if (!conn) throw new Error("WordPress is not connected for this site");
-
-    // Dynamically import to avoid circular import patterns
-    const { createWordpressDraft } = await import("./wordpress.functions");
-    const result = (await createWordpressDraft({
-      data: {
-        organizationId: data.organizationId,
-        siteId: draft.site_id,
+    const token = Buffer.from(`${conn.username}:${conn.appPassword}`).toString("base64");
+    const res = await fetch(`${conn.url}/wp-json/wp/v2/posts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${token}`,
+      },
+      body: JSON.stringify({
+        status: "draft",
         title: draft.title,
         content: draft.content_html,
         excerpt: draft.meta_description ?? "",
-      },
-    })) as { wpPostId: number | null; link: string | null };
+      }),
+    });
+    if (!res.ok) throw new Error(`WordPress publish failed: HTTP ${res.status}`);
+    const body = (await res.json()) as { id?: number; link?: string };
+    const result = { wpPostId: body?.id ?? null, link: body?.link ?? null };
 
     await supabase
       .from("content_drafts")
