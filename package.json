@@ -1,5 +1,6 @@
 {
   "name": "growthscribe-os",
+  "description": "AI-powered organic growth command center for WordPress publishers, SEO teams, and affiliate sites.",
   "private": true,
   "sideEffects": false,
   "type": "module",
