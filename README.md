@@ -98,4 +98,10 @@ Key tables: `organizations`, `organization_members`, `sites`,
 
 ## License
 
-Proprietary — © GrowthScribe. All rights reserved.
+MIT License — open source and free to use, modify, and contribute to.
+
+See [LICENSE](./LICENSE) for full details.
+
+## Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) to get started.
