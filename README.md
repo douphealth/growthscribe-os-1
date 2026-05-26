@@ -1,9 +1,10 @@
 # GrowthScribe OS
 
-An AI-powered organic growth command center for WordPress publishers,
-affiliate marketers, and SEO teams. GrowthScribe OS helps you improve
-rankings, topical authority, AI-search visibility (AEO/GEO), and revenue —
-without mass-publishing low-quality AI content.
+> AI-powered organic growth command center for WordPress publishers, SEO teams, and affiliate sites.
+
+![GrowthScribe OS Screenshot](./docs/screenshot.png)
+
+GrowthScribe OS helps you improve rankings, topical authority, AI-search visibility (AEO/GEO), and revenue — without mass-publishing low-quality AI content.
 
 ## Features
 
