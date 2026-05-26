@@ -16,7 +16,7 @@
     "supabase",
     "cloudflare-workers"
   ],
-  "private": true,
+  "private": false,
   "sideEffects": false,
   "type": "module",
   "scripts": {

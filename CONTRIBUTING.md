@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This document will help you get sta
 
 ### Reporting Issues
 
-- Use the [GitHub Issues](https://github.com/your-org/growthscribe-os/issues) page to report bugs or request features.
+- Use the [GitHub Issues](https://github.com/growthscribe/growthscribe-os/issues) page to report bugs or request features.
 - Search existing issues before creating a new one.
 - Include clear reproduction steps for bugs.
 
