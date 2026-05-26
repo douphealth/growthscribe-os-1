@@ -1,0 +1,3460 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      activities: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          link: string | null
+          metadata: Json | null
+          organization_id: string
+          owner_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          link?: string | null
+          metadata?: Json | null
+          organization_id: string
+          owner_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          link?: string | null
+          metadata?: Json | null
+          organization_id?: string
+          owner_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_engine_citations: {
+        Row: {
+          appears: boolean
+          citation_url: string | null
+          created_at: string
+          engine: string
+          id: string
+          organization_id: string
+          query: string
+          rank: number | null
+          site_id: string
+          week: string
+        }
+        Insert: {
+          appears?: boolean
+          citation_url?: string | null
+          created_at?: string
+          engine: string
+          id?: string
+          organization_id: string
+          query: string
+          rank?: number | null
+          site_id: string
+          week: string
+        }
+        Update: {
+          appears?: boolean
+          citation_url?: string | null
+          created_at?: string
+          engine?: string
+          id?: string
+          organization_id?: string
+          query?: string
+          rank?: number | null
+          site_id?: string
+          week?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_engine_citations_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_engine_citations_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_visibility_tests: {
+        Row: {
+          appears: boolean | null
+          citation_url: string | null
+          engine: string
+          id: string
+          organization_id: string
+          query: string
+          rank: number | null
+          raw_response: Json | null
+          site_id: string
+          tested_at: string
+        }
+        Insert: {
+          appears?: boolean | null
+          citation_url?: string | null
+          engine: string
+          id?: string
+          organization_id: string
+          query: string
+          rank?: number | null
+          raw_response?: Json | null
+          site_id: string
+          tested_at?: string
+        }
+        Update: {
+          appears?: boolean | null
+          citation_url?: string | null
+          engine?: string
+          id?: string
+          organization_id?: string
+          query?: string
+          rank?: number | null
+          raw_response?: Json | null
+          site_id?: string
+          tested_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_visibility_tests_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_visibility_tests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_visibility_tests_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_visibility_tests_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_requests: {
+        Row: {
+          brief_id: string | null
+          created_at: string
+          decided_at: string | null
+          decision_note: string | null
+          draft_payload: Json
+          id: string
+          organization_id: string
+          requested_by: string
+          reviewer_id: string | null
+          site_id: string
+          status: Database["public"]["Enums"]["approval_status"]
+        }
+        Insert: {
+          brief_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          draft_payload?: Json
+          id?: string
+          organization_id: string
+          requested_by: string
+          reviewer_id?: string | null
+          site_id: string
+          status?: Database["public"]["Enums"]["approval_status"]
+        }
+        Update: {
+          brief_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          draft_payload?: Json
+          id?: string
+          organization_id?: string
+          requested_by?: string
+          reviewer_id?: string | null
+          site_id?: string
+          status?: Database["public"]["Enums"]["approval_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_requests_brief_fk"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "content_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "content_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_requests_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          organization_id: string | null
+          resource_id: string | null
+          resource_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          organization_id?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auto_apply_settings: {
+        Row: {
+          exclude_categories: Json
+          exclude_post_ids: Json
+          mode: string
+          organization_id: string
+          paused: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          exclude_categories?: Json
+          exclude_post_ids?: Json
+          mode?: string
+          organization_id: string
+          paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          exclude_categories?: Json
+          exclude_post_ids?: Json
+          mode?: string
+          organization_id?: string
+          paused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_apply_settings_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      background_jobs: {
+        Row: {
+          created_at: string
+          created_by: string
+          error: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string | null
+          items_processed: number
+          job_type: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number
+          next_run_at: string
+          organization_id: string
+          payload: Json
+          priority: number
+          result: Json | null
+          retry_count: number
+          scheduled_at: string
+          site_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          total_items: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          error?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          items_processed?: number
+          job_type: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_run_at?: string
+          organization_id: string
+          payload?: Json
+          priority?: number
+          result?: Json | null
+          retry_count?: number
+          scheduled_at?: string
+          site_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          total_items?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          items_processed?: number
+          job_type?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_run_at?: string
+          organization_id?: string
+          payload?: Json
+          priority?: number
+          result?: Json | null
+          retry_count?: number
+          scheduled_at?: string
+          site_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["job_status"]
+          total_items?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "background_jobs_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "background_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "background_jobs_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "background_jobs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cluster_gap_briefs: {
+        Row: {
+          brief_id: string | null
+          cluster_id: string | null
+          created_at: string
+          id: string
+          intent: string | null
+          organization_id: string
+          rationale: string | null
+          site_id: string
+          status: string
+          suggested_title: string
+          target_keyword: string | null
+          task_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          brief_id?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          organization_id: string
+          rationale?: string | null
+          site_id: string
+          status?: string
+          suggested_title: string
+          target_keyword?: string | null
+          task_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brief_id?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          organization_id?: string
+          rationale?: string | null
+          site_id?: string
+          status?: string
+          suggested_title?: string
+          target_keyword?: string | null
+          task_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cluster_gap_briefs_brief_fk"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "content_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cluster_gap_briefs_cluster_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "topical_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cluster_gap_briefs_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cluster_gap_briefs_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cluster_gap_briefs_task_fk"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitor_pages: {
+        Row: {
+          analyzed_at: string
+          analyzed_by: string
+          competitor_domain: string
+          created_at: string
+          external_links_count: number | null
+          h1: string | null
+          headings: Json
+          id: string
+          internal_links_count: number | null
+          meta_description: string | null
+          organization_id: string
+          schema_types: Json
+          signals: Json
+          site_id: string
+          title: string | null
+          url: string
+          word_count: number | null
+        }
+        Insert: {
+          analyzed_at?: string
+          analyzed_by: string
+          competitor_domain: string
+          created_at?: string
+          external_links_count?: number | null
+          h1?: string | null
+          headings?: Json
+          id?: string
+          internal_links_count?: number | null
+          meta_description?: string | null
+          organization_id: string
+          schema_types?: Json
+          signals?: Json
+          site_id: string
+          title?: string | null
+          url: string
+          word_count?: number | null
+        }
+        Update: {
+          analyzed_at?: string
+          analyzed_by?: string
+          competitor_domain?: string
+          created_at?: string
+          external_links_count?: number | null
+          h1?: string | null
+          headings?: Json
+          id?: string
+          internal_links_count?: number | null
+          meta_description?: string | null
+          organization_id?: string
+          schema_types?: Json
+          signals?: Json
+          site_id?: string
+          title?: string | null
+          url?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_pages_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competitor_pages_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_audits: {
+        Row: {
+          aeo_score: number | null
+          ai_summary: string | null
+          created_at: string
+          eeat_score: number | null
+          id: string
+          organization_id: string
+          owner_id: string
+          quality_score: number | null
+          recommendations: Json | null
+          site_id: string
+          status: Database["public"]["Enums"]["audit_status"]
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          aeo_score?: number | null
+          ai_summary?: string | null
+          created_at?: string
+          eeat_score?: number | null
+          id?: string
+          organization_id: string
+          owner_id: string
+          quality_score?: number | null
+          recommendations?: Json | null
+          site_id: string
+          status?: Database["public"]["Enums"]["audit_status"]
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          aeo_score?: number | null
+          ai_summary?: string | null
+          created_at?: string
+          eeat_score?: number | null
+          id?: string
+          organization_id?: string
+          owner_id?: string
+          quality_score?: number | null
+          recommendations?: Json | null
+          site_id?: string
+          status?: Database["public"]["Enums"]["audit_status"]
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_audits_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_audits_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_audits_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_briefs: {
+        Row: {
+          aeo_questions: Json | null
+          ai_generated: boolean | null
+          created_at: string
+          geo_signals: Json | null
+          id: string
+          internal_links: Json | null
+          organization_id: string
+          outline: Json | null
+          owner_id: string
+          search_intent: string | null
+          site_id: string
+          target_keyword: string | null
+          title: string
+          updated_at: string
+          word_count_target: number | null
+        }
+        Insert: {
+          aeo_questions?: Json | null
+          ai_generated?: boolean | null
+          created_at?: string
+          geo_signals?: Json | null
+          id?: string
+          internal_links?: Json | null
+          organization_id: string
+          outline?: Json | null
+          owner_id: string
+          search_intent?: string | null
+          site_id: string
+          target_keyword?: string | null
+          title: string
+          updated_at?: string
+          word_count_target?: number | null
+        }
+        Update: {
+          aeo_questions?: Json | null
+          ai_generated?: boolean | null
+          created_at?: string
+          geo_signals?: Json | null
+          id?: string
+          internal_links?: Json | null
+          organization_id?: string
+          outline?: Json | null
+          owner_id?: string
+          search_intent?: string | null
+          site_id?: string
+          target_keyword?: string | null
+          title?: string
+          updated_at?: string
+          word_count_target?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_briefs_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_briefs_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_briefs_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_changesets: {
+        Row: {
+          after_hash: string | null
+          after_snapshot: Json
+          applied_at: string
+          applied_by: string
+          asset_blocks_added: Json
+          before_hash: string | null
+          before_snapshot: Json
+          id: string
+          organization_id: string
+          playbook_id: string | null
+          playbook_run_id: string | null
+          post_id: string | null
+          site_id: string
+          source: string
+          wp_post_id: number | null
+        }
+        Insert: {
+          after_hash?: string | null
+          after_snapshot?: Json
+          applied_at?: string
+          applied_by: string
+          asset_blocks_added?: Json
+          before_hash?: string | null
+          before_snapshot?: Json
+          id?: string
+          organization_id: string
+          playbook_id?: string | null
+          playbook_run_id?: string | null
+          post_id?: string | null
+          site_id: string
+          source: string
+          wp_post_id?: number | null
+        }
+        Update: {
+          after_hash?: string | null
+          after_snapshot?: Json
+          applied_at?: string
+          applied_by?: string
+          asset_blocks_added?: Json
+          before_hash?: string | null
+          before_snapshot?: Json
+          id?: string
+          organization_id?: string
+          playbook_id?: string | null
+          playbook_run_id?: string | null
+          post_id?: string | null
+          site_id?: string
+          source?: string
+          wp_post_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_changesets_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_changesets_playbook_fk"
+            columns: ["playbook_id"]
+            isOneToOne: false
+            referencedRelation: "playbooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_changesets_playbook_run_fk"
+            columns: ["playbook_run_id"]
+            isOneToOne: false
+            referencedRelation: "playbook_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_changesets_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_changesets_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_drafts: {
+        Row: {
+          brief_id: string | null
+          citations: Json
+          content_html: string
+          content_text: string | null
+          created_at: string
+          created_by: string
+          id: string
+          meta_description: string | null
+          model: string | null
+          organization_id: string
+          persona: string | null
+          published_at: string | null
+          site_id: string
+          status: string
+          target_keyword: string | null
+          title: string
+          tone: string
+          updated_at: string
+          word_count: number
+          wp_link: string | null
+          wp_post_id: number | null
+        }
+        Insert: {
+          brief_id?: string | null
+          citations?: Json
+          content_html?: string
+          content_text?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          meta_description?: string | null
+          model?: string | null
+          organization_id: string
+          persona?: string | null
+          published_at?: string | null
+          site_id: string
+          status?: string
+          target_keyword?: string | null
+          title: string
+          tone?: string
+          updated_at?: string
+          word_count?: number
+          wp_link?: string | null
+          wp_post_id?: number | null
+        }
+        Update: {
+          brief_id?: string | null
+          citations?: Json
+          content_html?: string
+          content_text?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          meta_description?: string | null
+          model?: string | null
+          organization_id?: string
+          persona?: string | null
+          published_at?: string | null
+          site_id?: string
+          status?: string
+          target_keyword?: string | null
+          title?: string
+          tone?: string
+          updated_at?: string
+          word_count?: number
+          wp_link?: string | null
+          wp_post_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_drafts_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "content_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_drafts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_drafts_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_recommendations: {
+        Row: {
+          audit_id: string | null
+          category: string
+          created_at: string
+          detail: string | null
+          id: string
+          organization_id: string
+          post_id: string | null
+          severity: string
+          site_id: string
+          status: string
+          suggested_action: string | null
+          title: string
+        }
+        Insert: {
+          audit_id?: string | null
+          category: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          organization_id: string
+          post_id?: string | null
+          severity?: string
+          site_id: string
+          status?: string
+          suggested_action?: string | null
+          title: string
+        }
+        Update: {
+          audit_id?: string | null
+          category?: string
+          created_at?: string
+          detail?: string | null
+          id?: string
+          organization_id?: string
+          post_id?: string | null
+          severity?: string
+          site_id?: string
+          status?: string
+          suggested_action?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_recommendations_audit_fk"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "content_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_recommendations_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "content_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_recommendations_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_recommendations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_recommendations_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_recommendations_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_recommendations_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_recommendations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_scores: {
+        Row: {
+          aeo_score: number | null
+          audit_id: string | null
+          computed_at: string
+          eeat_score: number | null
+          geo_score: number | null
+          helpfulness_score: number | null
+          id: string
+          organization_id: string
+          originality_score: number | null
+          post_id: string | null
+          quality_score: number | null
+          site_id: string
+        }
+        Insert: {
+          aeo_score?: number | null
+          audit_id?: string | null
+          computed_at?: string
+          eeat_score?: number | null
+          geo_score?: number | null
+          helpfulness_score?: number | null
+          id?: string
+          organization_id: string
+          originality_score?: number | null
+          post_id?: string | null
+          quality_score?: number | null
+          site_id: string
+        }
+        Update: {
+          aeo_score?: number | null
+          audit_id?: string | null
+          computed_at?: string
+          eeat_score?: number | null
+          geo_score?: number | null
+          helpfulness_score?: number | null
+          id?: string
+          organization_id?: string
+          originality_score?: number | null
+          post_id?: string | null
+          quality_score?: number | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_scores_audit_fk"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "content_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_scores_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "content_audits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_scores_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_scores_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_scores_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_scores_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_scores_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_scores_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      error_events: {
+        Row: {
+          context: Json
+          created_at: string
+          error_stack: string | null
+          id: string
+          level: string
+          message: string
+          organization_id: string | null
+          request_id: string | null
+          route: string | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          error_stack?: string | null
+          id?: string
+          level?: string
+          message: string
+          organization_id?: string | null
+          request_id?: string | null
+          route?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          error_stack?: string | null
+          id?: string
+          level?: string
+          message?: string
+          organization_id?: string | null
+          request_id?: string | null
+          route?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "error_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ga4_daily: {
+        Row: {
+          conversions: number
+          created_at: string
+          date: string
+          engaged_sessions: number
+          id: string
+          medium: string | null
+          organization_id: string
+          page_path: string | null
+          revenue: number
+          sessions: number
+          site_id: string
+          source: string | null
+          users: number
+        }
+        Insert: {
+          conversions?: number
+          created_at?: string
+          date: string
+          engaged_sessions?: number
+          id?: string
+          medium?: string | null
+          organization_id: string
+          page_path?: string | null
+          revenue?: number
+          sessions?: number
+          site_id: string
+          source?: string | null
+          users?: number
+        }
+        Update: {
+          conversions?: number
+          created_at?: string
+          date?: string
+          engaged_sessions?: number
+          id?: string
+          medium?: string | null
+          organization_id?: string
+          page_path?: string | null
+          revenue?: number
+          sessions?: number
+          site_id?: string
+          source?: string | null
+          users?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ga4_daily_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ga4_daily_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geo_aeo_assets: {
+        Row: {
+          applied_at: string | null
+          applied_changeset_id: string | null
+          content_hash: string | null
+          created_at: string
+          id: string
+          jsonld: Json
+          kind: string
+          organization_id: string
+          post_id: string
+          site_id: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_changeset_id?: string | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          jsonld: Json
+          kind: string
+          organization_id: string
+          post_id: string
+          site_id: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_changeset_id?: string | null
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          jsonld?: Json
+          kind?: string
+          organization_id?: string
+          post_id?: string
+          site_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geo_aeo_assets_changeset_fk"
+            columns: ["applied_changeset_id"]
+            isOneToOne: false
+            referencedRelation: "content_changesets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geo_aeo_assets_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geo_aeo_assets_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "geo_aeo_assets_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_connections: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string
+          credential_secret_name: string | null
+          id: string
+          last_error: string | null
+          last_synced_at: string | null
+          organization_id: string
+          provider: Database["public"]["Enums"]["integration_provider"]
+          site_id: string | null
+          status: Database["public"]["Enums"]["connection_status"]
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by: string
+          credential_secret_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          organization_id: string
+          provider: Database["public"]["Enums"]["integration_provider"]
+          site_id?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string
+          credential_secret_name?: string | null
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          organization_id?: string
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          site_id?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_connections_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_connections_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_connections_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          config: Json | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          organization_id: string
+          owner_id: string
+          provider: Database["public"]["Enums"]["integration_provider"]
+          site_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          organization_id: string
+          owner_id: string
+          provider: Database["public"]["Enums"]["integration_provider"]
+          site_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          organization_id?: string
+          owner_id?: string
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          site_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrations_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrations_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_link_opportunities: {
+        Row: {
+          anchor_suggestion: string | null
+          context_snippet: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          relevance_score: number | null
+          site_id: string
+          source_post_id: string | null
+          status: string
+          target_post_id: string | null
+        }
+        Insert: {
+          anchor_suggestion?: string | null
+          context_snippet?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          relevance_score?: number | null
+          site_id: string
+          source_post_id?: string | null
+          status?: string
+          target_post_id?: string | null
+        }
+        Update: {
+          anchor_suggestion?: string | null
+          context_snippet?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          relevance_score?: number | null
+          site_id?: string
+          source_post_id?: string | null
+          status?: string
+          target_post_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ilo_source_post_fk"
+            columns: ["source_post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ilo_target_post_fk"
+            columns: ["target_post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_link_opportunities_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_link_opportunities_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_link_opportunities_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_link_opportunities_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_link_opportunities_source_post_id_fkey"
+            columns: ["source_post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_link_opportunities_target_post_id_fkey"
+            columns: ["target_post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          job_id: string
+          level: string
+          message: string
+          metadata: Json
+          organization_id: string
+          request_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          job_id: string
+          level?: string
+          message: string
+          metadata?: Json
+          organization_id: string
+          request_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          job_id?: string
+          level?: string
+          message?: string
+          metadata?: Json
+          organization_id?: string
+          request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_logs_job_fk"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "background_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "background_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_logs_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      keyword_rankings: {
+        Row: {
+          created_at: string
+          date: string
+          difficulty: number | null
+          id: string
+          intent: string | null
+          keyword: string
+          keyword_id: string | null
+          organization_id: string
+          page: string | null
+          position: number | null
+          search_volume: number | null
+          site_id: string
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          difficulty?: number | null
+          id?: string
+          intent?: string | null
+          keyword: string
+          keyword_id?: string | null
+          organization_id: string
+          page?: string | null
+          position?: number | null
+          search_volume?: number | null
+          site_id: string
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          difficulty?: number | null
+          id?: string
+          intent?: string | null
+          keyword?: string
+          keyword_id?: string | null
+          organization_id?: string
+          page?: string | null
+          position?: number | null
+          search_volume?: number | null
+          site_id?: string
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "keyword_rankings_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "keyword_rankings_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lift_measurements: {
+        Row: {
+          baseline_clicks: number | null
+          baseline_impressions: number | null
+          baseline_position: number | null
+          changeset_id: string
+          clicks_delta: number | null
+          id: string
+          impressions_delta: number | null
+          measured_at: string
+          organization_id: string
+          position_delta: number | null
+          post_clicks: number | null
+          post_impressions: number | null
+          post_position: number | null
+          site_id: string
+          window_days: number
+        }
+        Insert: {
+          baseline_clicks?: number | null
+          baseline_impressions?: number | null
+          baseline_position?: number | null
+          changeset_id: string
+          clicks_delta?: number | null
+          id?: string
+          impressions_delta?: number | null
+          measured_at?: string
+          organization_id: string
+          position_delta?: number | null
+          post_clicks?: number | null
+          post_impressions?: number | null
+          post_position?: number | null
+          site_id: string
+          window_days: number
+        }
+        Update: {
+          baseline_clicks?: number | null
+          baseline_impressions?: number | null
+          baseline_position?: number | null
+          changeset_id?: string
+          clicks_delta?: number | null
+          id?: string
+          impressions_delta?: number | null
+          measured_at?: string
+          organization_id?: string
+          position_delta?: number | null
+          post_clicks?: number | null
+          post_impressions?: number | null
+          post_position?: number | null
+          site_id?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lift_measurements_changeset_fk"
+            columns: ["changeset_id"]
+            isOneToOne: false
+            referencedRelation: "content_changesets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lift_measurements_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lift_measurements_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          organization_id: string
+          role: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id?: string
+          role?: Database["public"]["Enums"]["org_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      page_vitals: {
+        Row: {
+          cls: number | null
+          fcp_ms: number | null
+          fetched_at: string
+          id: string
+          inp_ms: number | null
+          lcp_ms: number | null
+          organization_id: string
+          performance_score: number | null
+          post_id: string | null
+          raw: Json | null
+          site_id: string
+          strategy: string
+          ttfb_ms: number | null
+          url: string
+        }
+        Insert: {
+          cls?: number | null
+          fcp_ms?: number | null
+          fetched_at?: string
+          id?: string
+          inp_ms?: number | null
+          lcp_ms?: number | null
+          organization_id: string
+          performance_score?: number | null
+          post_id?: string | null
+          raw?: Json | null
+          site_id: string
+          strategy: string
+          ttfb_ms?: number | null
+          url: string
+        }
+        Update: {
+          cls?: number | null
+          fcp_ms?: number | null
+          fetched_at?: string
+          id?: string
+          inp_ms?: number | null
+          lcp_ms?: number | null
+          organization_id?: string
+          performance_score?: number | null
+          post_id?: string | null
+          raw?: Json | null
+          site_id?: string
+          strategy?: string
+          ttfb_ms?: number | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_vitals_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "page_vitals_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "page_vitals_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playbook_runs: {
+        Row: {
+          applied_changeset_id: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          error: string | null
+          id: string
+          organization_id: string
+          playbook_id: string
+          post_id: string | null
+          proposed_diff: Json
+          site_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          applied_changeset_id?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          error?: string | null
+          id?: string
+          organization_id: string
+          playbook_id: string
+          post_id?: string | null
+          proposed_diff?: Json
+          site_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          applied_changeset_id?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          id?: string
+          organization_id?: string
+          playbook_id?: string
+          post_id?: string | null
+          proposed_diff?: Json
+          site_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playbook_runs_changeset_fk"
+            columns: ["applied_changeset_id"]
+            isOneToOne: false
+            referencedRelation: "content_changesets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playbook_runs_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playbook_runs_playbook_fk"
+            columns: ["playbook_id"]
+            isOneToOne: false
+            referencedRelation: "playbooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playbook_runs_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playbook_runs_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playbooks: {
+        Row: {
+          asset_blocks: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          organization_id: string
+          scoring_weights: Json
+          target_intent: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_blocks?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          organization_id: string
+          scoring_weights?: Json
+          target_intent?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_blocks?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          organization_id?: string
+          scoring_weights?: Json
+          target_intent?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playbooks_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_intents: {
+        Row: {
+          classified_at: string
+          confidence: number | null
+          id: string
+          intent: string
+          organization_id: string
+          post_id: string
+          rationale: string | null
+          site_id: string
+        }
+        Insert: {
+          classified_at?: string
+          confidence?: number | null
+          id?: string
+          intent: string
+          organization_id: string
+          post_id: string
+          rationale?: string | null
+          site_id: string
+        }
+        Update: {
+          classified_at?: string
+          confidence?: number | null
+          id?: string
+          intent?: string
+          organization_id?: string
+          post_id?: string
+          rationale?: string | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_intents_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_intents_post_fk"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_intents_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          job_title: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          job_title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          job_title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rollout_items: {
+        Row: {
+          applied_at: string | null
+          changeset_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          job_id: string | null
+          organization_id: string
+          post_id: string | null
+          recommendation_id: string | null
+          rollout_id: string
+          stage: string
+          status: string
+        }
+        Insert: {
+          applied_at?: string | null
+          changeset_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          organization_id: string
+          post_id?: string | null
+          recommendation_id?: string | null
+          rollout_id: string
+          stage?: string
+          status?: string
+        }
+        Update: {
+          applied_at?: string | null
+          changeset_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id?: string | null
+          organization_id?: string
+          post_id?: string | null
+          recommendation_id?: string | null
+          rollout_id?: string
+          stage?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rollout_items_rollout_id_fkey"
+            columns: ["rollout_id"]
+            isOneToOne: false
+            referencedRelation: "rollouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rollouts: {
+        Row: {
+          applied_count: number
+          baseline_captured_at: string | null
+          baseline_clicks: number | null
+          created_at: string
+          created_by: string
+          current_stage: string
+          failed_count: number
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          regression_threshold_pct: number
+          rolled_back_count: number
+          site_id: string
+          status: string
+          total_count: number
+          updated_at: string
+        }
+        Insert: {
+          applied_count?: number
+          baseline_captured_at?: string | null
+          baseline_clicks?: number | null
+          created_at?: string
+          created_by: string
+          current_stage?: string
+          failed_count?: number
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          regression_threshold_pct?: number
+          rolled_back_count?: number
+          site_id: string
+          status?: string
+          total_count?: number
+          updated_at?: string
+        }
+        Update: {
+          applied_count?: number
+          baseline_captured_at?: string | null
+          baseline_clicks?: number | null
+          created_at?: string
+          created_by?: string
+          current_stage?: string
+          failed_count?: number
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          regression_threshold_pct?: number
+          rolled_back_count?: number
+          site_id?: string
+          status?: string
+          total_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      score_breakdowns: {
+        Row: {
+          computed_at: string
+          confidence: string
+          estimated_impact: string | null
+          evidence: Json
+          explanation: string | null
+          id: string
+          organization_id: string
+          post_id: string | null
+          recommended_actions: Json
+          score: number
+          score_type: string
+          site_id: string
+          url: string | null
+        }
+        Insert: {
+          computed_at?: string
+          confidence?: string
+          estimated_impact?: string | null
+          evidence?: Json
+          explanation?: string | null
+          id?: string
+          organization_id: string
+          post_id?: string | null
+          recommended_actions?: Json
+          score: number
+          score_type: string
+          site_id: string
+          url?: string | null
+        }
+        Update: {
+          computed_at?: string
+          confidence?: string
+          estimated_impact?: string | null
+          evidence?: Json
+          explanation?: string | null
+          id?: string
+          organization_id?: string
+          post_id?: string | null
+          recommended_actions?: Json
+          score?: number
+          score_type?: string
+          site_id?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_breakdowns_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_breakdowns_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_breakdowns_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "score_breakdowns_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      search_console_daily: {
+        Row: {
+          clicks: number
+          country: string | null
+          created_at: string
+          ctr: number | null
+          date: string
+          device: string | null
+          id: string
+          impressions: number
+          organization_id: string
+          page: string
+          position: number | null
+          query: string
+          site_id: string
+        }
+        Insert: {
+          clicks?: number
+          country?: string | null
+          created_at?: string
+          ctr?: number | null
+          date: string
+          device?: string | null
+          id?: string
+          impressions?: number
+          organization_id: string
+          page?: string
+          position?: number | null
+          query?: string
+          site_id: string
+        }
+        Update: {
+          clicks?: number
+          country?: string | null
+          created_at?: string
+          ctr?: number | null
+          date?: string
+          device?: string | null
+          id?: string
+          impressions?: number
+          organization_id?: string
+          page?: string
+          position?: number | null
+          query?: string
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_console_daily_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_console_daily_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      serp_snapshots: {
+        Row: {
+          clicks: number
+          created_at: string
+          date: string
+          id: string
+          impressions: number
+          keyword: string
+          organization_id: string
+          page: string | null
+          position: number | null
+          site_id: string
+          source: string
+        }
+        Insert: {
+          clicks?: number
+          created_at?: string
+          date: string
+          id?: string
+          impressions?: number
+          keyword: string
+          organization_id: string
+          page?: string | null
+          position?: number | null
+          site_id: string
+          source?: string
+        }
+        Update: {
+          clicks?: number
+          created_at?: string
+          date?: string
+          id?: string
+          impressions?: number
+          keyword?: string
+          organization_id?: string
+          page?: string | null
+          position?: number | null
+          site_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "serp_snapshots_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "serp_snapshots_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sites: {
+        Row: {
+          created_at: string
+          detected_seo_plugin: string | null
+          ga4_property_id: string | null
+          gsc_property: string | null
+          health_score: number | null
+          id: string
+          last_synced_at: string | null
+          monthly_clicks: number | null
+          monthly_impressions: number | null
+          name: string
+          organization_id: string
+          owner_id: string
+          status: Database["public"]["Enums"]["site_status"]
+          topical_authority_score: number | null
+          total_posts: number | null
+          updated_at: string
+          url: string
+          wp_username: string | null
+        }
+        Insert: {
+          created_at?: string
+          detected_seo_plugin?: string | null
+          ga4_property_id?: string | null
+          gsc_property?: string | null
+          health_score?: number | null
+          id?: string
+          last_synced_at?: string | null
+          monthly_clicks?: number | null
+          monthly_impressions?: number | null
+          name: string
+          organization_id: string
+          owner_id: string
+          status?: Database["public"]["Enums"]["site_status"]
+          topical_authority_score?: number | null
+          total_posts?: number | null
+          updated_at?: string
+          url: string
+          wp_username?: string | null
+        }
+        Update: {
+          created_at?: string
+          detected_seo_plugin?: string | null
+          ga4_property_id?: string | null
+          gsc_property?: string | null
+          health_score?: number | null
+          id?: string
+          last_synced_at?: string | null
+          monthly_clicks?: number | null
+          monthly_impressions?: number | null
+          name?: string
+          organization_id?: string
+          owner_id?: string
+          status?: Database["public"]["Enums"]["site_status"]
+          topical_authority_score?: number | null
+          total_posts?: number | null
+          updated_at?: string
+          url?: string
+          wp_username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sites_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assignee_id: string | null
+          brief_id: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          organization_id: string
+          owner_id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          site_id: string | null
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          brief_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          organization_id: string
+          owner_id: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          site_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          brief_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          organization_id?: string
+          owner_id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          site_id?: string | null
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_brief_fk"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "content_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "content_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topical_cluster_pages: {
+        Row: {
+          cluster_id: string
+          coverage_status: string
+          created_at: string
+          id: string
+          organization_id: string
+          page_role: string | null
+          position: number | null
+          post_id: string | null
+          site_id: string
+          target_keyword: string | null
+          title: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          cluster_id: string
+          coverage_status?: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          page_role?: string | null
+          position?: number | null
+          post_id?: string | null
+          site_id: string
+          target_keyword?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          cluster_id?: string
+          coverage_status?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          page_role?: string | null
+          position?: number | null
+          post_id?: string | null
+          site_id?: string
+          target_keyword?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topical_cluster_pages_cluster_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "topical_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "topical_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_post_fk"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_cluster_pages_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topical_clusters: {
+        Row: {
+          coverage_percent: number | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          pillar_topic: string | null
+          site_id: string
+        }
+        Insert: {
+          coverage_percent?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          pillar_topic?: string | null
+          site_id: string
+        }
+        Update: {
+          coverage_percent?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          pillar_topic?: string | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topical_clusters_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_clusters_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_clusters_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_clusters_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topical_maps: {
+        Row: {
+          cluster: string | null
+          coverage_status: string | null
+          created_at: string
+          id: string
+          intent: string | null
+          organization_id: string
+          owner_id: string
+          parent_id: string | null
+          pillar: string
+          priority: number | null
+          site_id: string
+          updated_at: string
+        }
+        Insert: {
+          cluster?: string | null
+          coverage_status?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          organization_id: string
+          owner_id: string
+          parent_id?: string | null
+          pillar: string
+          priority?: number | null
+          site_id: string
+          updated_at?: string
+        }
+        Update: {
+          cluster?: string | null
+          coverage_status?: string | null
+          created_at?: string
+          id?: string
+          intent?: string | null
+          organization_id?: string
+          owner_id?: string
+          parent_id?: string | null
+          pillar?: string
+          priority?: number | null
+          site_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topical_maps_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_maps_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "topical_maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_maps_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_maps_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_counters: {
+        Row: {
+          event_type: string
+          id: string
+          organization_id: string
+          period_month: string
+          total_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          organization_id: string
+          period_month: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          organization_id?: string
+          period_month?: string
+          total_quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_counters_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_counters_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          organization_id: string
+          quantity: number
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          organization_id: string
+          quantity?: number
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usage_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wordpress_posts: {
+        Row: {
+          aeo_score: number | null
+          author: string | null
+          canonical_url: string | null
+          categories: Json | null
+          content_hash: string | null
+          content_html: string | null
+          content_text: string | null
+          created_at: string
+          excerpt: string | null
+          featured_image_url: string | null
+          freshness_score: number | null
+          geo_score: number | null
+          id: string
+          last_optimized_at: string | null
+          modified_at: string | null
+          optimization_score: number | null
+          organization_id: string
+          post_type: string
+          published_at: string | null
+          reading_time: number | null
+          recommended_action: string | null
+          seo_meta: Json
+          seo_plugin: string | null
+          seo_score: number | null
+          site_id: string
+          slug: string | null
+          status: string | null
+          synced_at: string
+          tags: Json | null
+          title: string | null
+          url: string
+          word_count: number | null
+          wp_post_id: number
+        }
+        Insert: {
+          aeo_score?: number | null
+          author?: string | null
+          canonical_url?: string | null
+          categories?: Json | null
+          content_hash?: string | null
+          content_html?: string | null
+          content_text?: string | null
+          created_at?: string
+          excerpt?: string | null
+          featured_image_url?: string | null
+          freshness_score?: number | null
+          geo_score?: number | null
+          id?: string
+          last_optimized_at?: string | null
+          modified_at?: string | null
+          optimization_score?: number | null
+          organization_id: string
+          post_type?: string
+          published_at?: string | null
+          reading_time?: number | null
+          recommended_action?: string | null
+          seo_meta?: Json
+          seo_plugin?: string | null
+          seo_score?: number | null
+          site_id: string
+          slug?: string | null
+          status?: string | null
+          synced_at?: string
+          tags?: Json | null
+          title?: string | null
+          url: string
+          word_count?: number | null
+          wp_post_id: number
+        }
+        Update: {
+          aeo_score?: number | null
+          author?: string | null
+          canonical_url?: string | null
+          categories?: Json | null
+          content_hash?: string | null
+          content_html?: string | null
+          content_text?: string | null
+          created_at?: string
+          excerpt?: string | null
+          featured_image_url?: string | null
+          freshness_score?: number | null
+          geo_score?: number | null
+          id?: string
+          last_optimized_at?: string | null
+          modified_at?: string | null
+          optimization_score?: number | null
+          organization_id?: string
+          post_type?: string
+          published_at?: string | null
+          reading_time?: number | null
+          recommended_action?: string | null
+          seo_meta?: Json
+          seo_plugin?: string | null
+          seo_score?: number | null
+          site_id?: string
+          slug?: string | null
+          status?: string | null
+          synced_at?: string
+          tags?: Json | null
+          title?: string | null
+          url?: string
+          word_count?: number | null
+          wp_post_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wordpress_posts_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wordpress_posts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wordpress_posts_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wordpress_posts_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wp_revisions: {
+        Row: {
+          after: Json
+          applied_at: string
+          applied_by: string
+          before: Json
+          id: string
+          job_id: string | null
+          organization_id: string
+          post_id: string | null
+          post_type: string
+          rolled_back_at: string | null
+          rolled_back_by: string | null
+          site_id: string
+          wp_post_id: number
+        }
+        Insert: {
+          after?: Json
+          applied_at?: string
+          applied_by: string
+          before?: Json
+          id?: string
+          job_id?: string | null
+          organization_id: string
+          post_id?: string | null
+          post_type?: string
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          site_id: string
+          wp_post_id: number
+        }
+        Update: {
+          after?: Json
+          applied_at?: string
+          applied_by?: string
+          before?: Json
+          id?: string
+          job_id?: string | null
+          organization_id?: string
+          post_id?: string | null
+          post_type?: string
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          site_id?: string
+          wp_post_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wp_revisions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "background_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wp_revisions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "wordpress_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      gsc_page_rollup_28d: {
+        Row: {
+          clicks: number | null
+          ctr: number | null
+          impressions: number | null
+          organization_id: string | null
+          page: string | null
+          position: number | null
+          site_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_console_daily_org_fk"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "search_console_daily_site_fk"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      can_create_initial_org_membership: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      claim_jobs: {
+        Args: { _max_jobs: number; _max_per_org: number; _worker_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          error: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string | null
+          items_processed: number
+          job_type: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number
+          next_run_at: string
+          organization_id: string
+          payload: Json
+          priority: number
+          result: Json | null
+          retry_count: number
+          scheduled_at: string
+          site_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["job_status"]
+          total_items: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "background_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      cleanup_stale_data: { Args: never; Returns: Json }
+      enqueue_full_optimization: {
+        Args: { _org_id: string; _site_id: string }
+        Returns: Json
+      }
+      get_dashboard_summary: { Args: { _org_id: string }; Returns: Json }
+      get_optimization_status: {
+        Args: { _org_id: string; _site_id: string }
+        Returns: Json
+      }
+      has_org_role: {
+        Args: {
+          _org_id: string
+          _role: Database["public"]["Enums"]["org_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_org_admin: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      org_has_no_members: { Args: { _org_id: string }; Returns: boolean }
+      refresh_gsc_page_rollup_28d: { Args: never; Returns: undefined }
+    }
+    Enums: {
+      app_role: "owner" | "admin" | "editor" | "analyst" | "viewer"
+      approval_status: "pending" | "approved" | "rejected" | "cancelled"
+      audit_status: "queued" | "running" | "completed" | "failed"
+      connection_status: "pending" | "connected" | "error" | "revoked"
+      integration_provider:
+        | "wordpress"
+        | "gsc"
+        | "ga4"
+        | "openai"
+        | "lovable_ai"
+      job_status:
+        | "queued"
+        | "running"
+        | "succeeded"
+        | "failed"
+        | "cancelled"
+        | "completed"
+      org_role: "owner" | "admin" | "editor" | "analyst" | "viewer"
+      site_status:
+        | "connected"
+        | "disconnected"
+        | "error"
+        | "pending"
+        | "verifying"
+        | "sync_running"
+        | "sync_failed"
+        | "stale"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status:
+        | "todo"
+        | "in_progress"
+        | "review"
+        | "approved"
+        | "published"
+        | "archived"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["owner", "admin", "editor", "analyst", "viewer"],
+      approval_status: ["pending", "approved", "rejected", "cancelled"],
+      audit_status: ["queued", "running", "completed", "failed"],
+      connection_status: ["pending", "connected", "error", "revoked"],
+      integration_provider: ["wordpress", "gsc", "ga4", "openai", "lovable_ai"],
+      job_status: [
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "completed",
+      ],
+      org_role: ["owner", "admin", "editor", "analyst", "viewer"],
+      site_status: [
+        "connected",
+        "disconnected",
+        "error",
+        "pending",
+        "verifying",
+        "sync_running",
+        "sync_failed",
+        "stale",
+      ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: [
+        "todo",
+        "in_progress",
+        "review",
+        "approved",
+        "published",
+        "archived",
+      ],
+    },
+  },
+} as const

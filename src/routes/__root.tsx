@@ -1,0 +1,133 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  Outlet,
+  Link,
+  createRootRouteWithContext,
+  HeadContent,
+  Scripts,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
+
+import appCss from "../styles.css?url";
+import { AuthProvider } from "@/lib/auth-context";
+import { OrganizationProvider } from "@/lib/org-context";
+import { Toaster } from "@/components/ui/sonner";
+import { ErrorScreen } from "@/components/ErrorScreen";
+import { MissingEnvScreen } from "@/components/MissingEnvScreen";
+import { getMissingEnvVars } from "@/lib/env-check";
+import {
+  installClientErrorReporter,
+  reportClientError,
+} from "@/lib/client-error-reporter";
+
+function NotFoundComponent() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center">
+        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The page you're looking for doesn't exist or has been moved.
+        </p>
+        <div className="mt-6">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Go home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  console.error(error);
+  // Persist React render errors to error_events so they show up in the
+  // observability dashboard alongside server failures.
+  try {
+    reportClientError(error, { level: "fatal", context: { kind: "react-render" } });
+  } catch {
+    // ignore — never let logging crash the error boundary
+  }
+  const missing = getMissingEnvVars();
+  if (missing.length > 0) return <MissingEnvScreen missing={missing} />;
+  return <ErrorScreen error={error} reset={reset} />;
+}
+
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "GrowthScribe OS — AI Growth Command Center for WordPress Publishers" },
+      {
+        name: "description",
+        content:
+          "Enterprise-grade AI command center for SEO, AEO/GEO, topical authority, content audits, and editorial workflows on WordPress.",
+      },
+      { name: "author", content: "GrowthScribe" },
+      { property: "og:title", content: "GrowthScribe OS — AI Growth Command Center" },
+      {
+        property: "og:description",
+        content: "Rank, earn, and grow without mass-publishing low-quality AI content.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "GrowthScribe OS" },
+      {
+        name: "twitter:description",
+        content: "Enterprise AI command center for organic growth on WordPress.",
+      },
+    ],
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
+    ],
+  }),
+  shellComponent: RootShell,
+  component: RootComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
+});
+
+function RootShell({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    installClientErrorReporter();
+  }, []);
+
+  const missing = getMissingEnvVars();
+  if (missing.length > 0) {
+    return <MissingEnvScreen missing={missing} />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <OrganizationProvider>
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </OrganizationProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
